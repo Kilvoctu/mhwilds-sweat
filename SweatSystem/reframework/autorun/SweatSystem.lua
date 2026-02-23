@@ -1,0 +1,1067 @@
+-- ==========================================
+-- Monster Hunter Wilds - Sweat System Mod (Passive Weather Edition)
+-- Integrated by Antigravity
+-- ==========================================
+
+local re = re
+local sdk = sdk
+local imgui = imgui
+local json = json
+local Core = require("_CatLib")
+local Utils = require("_CatLib.utils")
+
+-- Performance: Localize common functions
+local math_floor = math.floor
+local math_max = math.max
+local math_min = math.min
+local math_abs = math.abs
+local table_insert = table.insert
+local table_remove = table.remove
+local pairs = pairs
+local ipairs = ipairs
+local tostring = tostring
+local tonumber = tonumber
+local string_format = string.format
+
+-- ==========================================
+-- Helper: Rounding / 辅助函数
+-- ==========================================
+local function round3(num) return math_floor(num * 1000 + 0.5) / 1000 end
+local function round2(num) return math_floor(num * 100 + 0.5) / 100 end
+
+-- ==========================================
+-- Localization / 语言设置
+-- ==========================================
+local cur_lang_index = 1 -- English(1) Chinese(2)
+local Lang = {
+    en = {
+        settings = "Sweat System", debug_mode = "Debug Mode (Show Values)", enable_mod = "Enable Mod", 
+        global_params = "Global Growth Parameters", env_params = "Environment & Weather Settings",
+        env_cur_stage = "Current Stage Info", env_weather = "Weather Multipliers", env_rename = "Rename Stage",
+        env_create = "Create Config for Current Stage", env_wet_mult = "Env Wet Multiplier", env_dry_mult = "Env Dry Multiplier",
+        env_weather_active = "[ACTIVE]", env_weather_inactive = "Inactive",
+        body_parts = "Body Part Limits (Set 0 to Disable Part)", roughness_settings = "Skin Roughness Settings (Glossiness)", 
+        custom_actions = "Custom Action Management (Added)", save_load = "Configuration File Management", 
+        debug_values = "Current Sweat Values:", debug_motion = "Current Real-time Motion Info:", debug_lock = "[Debug] Force Lock Sweat Value", 
+        debug_lock_val = "Locked Value (Restricted by Part Limit)", custom_guide_list = "Custom Attack Moves List", custom_motion_list = "Custom Animation Data List", 
+        btn_delete = "Delete", type_stamina = "[Stamina Class]", type_motion = "[Motion Class]", type_guide = "[Guide Class]", 
+        no_custom_actions = "No custom actions added yet. Please add them from History in Debug Mode.", 
+        rate_stamina = "Increase Rate (Stamina Consumption)", rate_motion = "Increase Rate (Specific Animations)", rate_action = "Increase Rate (Attack Moves)", 
+        rate_decrease = "Recovery Rate (Natural Drying)", rate_battle = "Increase Rate (Passive in Battle)", 
+        refresh_interval = "Visual Refresh Interval (Seconds)", refresh_desc = "Lower = Smoother updates.\nOptimization Applied: Hash Map Lookup & Delta Checks.", 
+        enable_stamina = "Enable Stamina Calculation", enable_action = "Enable Attack Move Calculation", enable_motion = "Enable Animation Calculation", 
+        face_chk = "Enable Face Sweating", body_chk = "Enable Body Sweating", enable_roughness = "Enable Roughness Control (Override Default Material)", 
+        val_roughness_face = "Face Roughness (Lower = Shinier)", val_roughness_body = "Body Roughness (Lower = Shinier)", 
+        limit_desc_face = "Face Maximum Wetness", limit_desc_body = "Body Maximum Wetness",
+        add_to_stamina = "Add as [Stamina Class]", add_to_motion = "Add as [Motion Class]", add_to_guide = "Add as [Attack Class]", 
+        added_msg = "Successfully added to Custom List!", exists_msg = "Action already exists in list", 
+        hist_title = "Action History (Expand to Start Recording)", hist_clear = "Clear History", 
+        btn_save = "Save Configuration", btn_load = "Load Configuration", btn_recan = "Force Rescan Character Meshes",
+        val_min_face = "Face Minimum Wetness", val_min_body = "Body Minimum Wetness",
+        debug_val_fmt = "Face: %.2f | Body: %.2f",
+        debug_env_wet = "Total Env Wet Mult: %.2fx",
+        debug_env_dry = "Total Env Dry Mult: %.2fx",
+        lbl_cur_stage_id = "Current Stage ID: ",
+        status_unconfigured = "Unconfigured",
+        msg_wait_stage = "Waiting for Stage Load...",
+        w_heatwave = "Heat Wave",
+        w_heavyrain = "Heavy Rain",
+        w_sandstorm = "Sand Storm",
+        w_blizzard = "Blizzard",
+        w_unknown = "Unknown Weather",
+        rate_env_passive = "Base Rate (Passive Env Growth)",
+        desc_env_passive = "Takes effect when Env Wet Multiplier > 1.0 (e.g. Rain/Heat)",
+        auto_scan_info = "Auto-Scan Status: ",
+        auto_scan_chk = "Auto-Detect Equipment Changes"
+    },
+    cn = {
+        settings = "汗湿系统", debug_mode = "调试模式 (显示数值)", enable_mod = "启用 Mod", 
+        global_params = "全局增长参数", env_params = "环境与天气系统 (倍率与被动增长)",
+        env_cur_stage = "当前场景信息", env_weather = "天气倍率设置", env_rename = "重命名场景",
+        env_create = "为当前场景创建配置", env_wet_mult = "环境湿润倍率", env_dry_mult = "环境风干倍率",
+        env_weather_active = "【当前生效中】", env_weather_inactive = "未激活",
+        body_parts = "部位上下限设置 (设为0即关闭该部位)", roughness_settings = "皮肤粗糙度设置 (光泽度)", 
+        custom_actions = "自定义动作管理 (已添加)", save_load = "配置文件管理", 
+        debug_values = "当前各部位汗湿数值:", debug_motion = "当前实时动作参数:", debug_lock = "【调试】强制锁定汗湿值", 
+        debug_lock_val = "锁定数值 (受部位上限限制)", custom_guide_list = "自定义攻击招式列表", custom_motion_list = "自定义动画数据列表", 
+        btn_delete = "删除", type_stamina = "【类型: 高强度体力消耗】", type_motion = "【类型: 普通动作/动画】", type_guide = "【类型: 武器攻击招式】", 
+        no_custom_actions = "暂无自定义动作。请在调试模式的历史记录中点击添加。", 
+        rate_stamina = "增长率 (耐力消耗时)", rate_motion = "增长率 (匹配特定动画时)", rate_action = "增长率 (使用武器招式时)", 
+        rate_decrease = "消退率 (随时间自然风干)", rate_battle = "增长率 (处于战斗状态时额外增加)", 
+        refresh_interval = "画面刷新间隔 (秒)", refresh_desc = "已应用优化算法：哈希表查找 + 差值更新检测。", 
+        enable_stamina = "启用耐力关联计算", enable_action = "启用攻击招式关联计算", enable_motion = "启用基础动画关联计算", 
+        face_chk = "启用 脸部 汗湿", body_chk = "启用 身体/腿部 汗湿", enable_roughness = "启用粗糙度控制 (覆盖默认材质)", 
+        val_roughness_face = "脸部粗糙度 (越低越油亮)", val_roughness_body = "身体粗糙度 (越低越油亮)", 
+        limit_desc_face = "脸部汗湿上限", limit_desc_body = "身体汗湿上限", 
+        add_to_stamina = "添加为【耐力消耗类】", add_to_motion = "添加为【动作数据类】", add_to_guide = "添加为【攻击招式类】", 
+        added_msg = "已成功添加到自定义列表!", exists_msg = "该动作已在列表中", 
+        hist_title = "最近 10 个动作历史记录 (点击展开开始记录)", hist_clear = "清空历史", 
+        btn_save = "保存当前配置", btn_load = "读取存档配置", btn_recan = "强制重新扫描角色模型",
+        val_min_face = "脸部汗湿下限", val_min_body = "身体汗湿下限",
+        debug_val_fmt = "脸部: %.2f | 身体: %.2f",
+        debug_env_wet = "环境综合湿润倍率: %.2fx",
+        debug_env_dry = "环境综合风干倍率: %.2fx",
+        lbl_cur_stage_id = "当前场景 ID: ",
+        status_unconfigured = "未配置",
+        msg_wait_stage = "等待场景加载...",
+        w_heatwave = "热浪 (Heat Wave)",
+        w_heavyrain = "暴雨 (Heavy Rain)",
+        w_sandstorm = "沙尘暴 (Sand Storm)",
+        w_blizzard = "暴风雪 (Blizzard)",
+        w_unknown = "未知天气",
+        rate_env_passive = "基础增长率 (环境/天气被动)",
+        desc_env_passive = "当环境倍率 > 1.0 时生效 (如暴雨/热浪会自动增加)",
+        auto_scan_info = "自动检测状态: ",
+        auto_scan_chk = "自动检测装备变更"
+    }
+}
+
+local function T(key)
+    local lang_code = (cur_lang_index == 1) and "en" or "cn"
+    return Lang[lang_code][key] or key
+end
+
+-- ==========================================
+-- Global Variables
+-- ==========================================
+local stamina_value = 0
+local face_sweating_value = 0
+local body_sweating_value = 0
+local last_stamina_value = 0
+
+-- Track last applied values
+local applied_face_sweat = -1
+local applied_body_sweat = -1
+local applied_face_rough = -1
+local applied_body_rough = -1
+
+-- [USER DATA: DEFAULT VALUES UPDATED]
+local SWEATING_INCREASE_RATE = 0.035
+local SWEATING_DECREASE_RATE = 0.025
+local SWEATING_INCREASE_RATE_BATTLE = 0.03
+local SWEATING_MOTIONDATA_INCREASE_RATE = 0.04
+local SWEATING_ACTIONGUIDE_INCREASE_RATE = 0.03
+local SWEATING_ENV_PASSIVE_RATE = 0.01
+
+local SWEATING_LIMIT_MIN = 0.00
+local SWEATING_LIMIT_MAX = 0.50
+
+local update_interval_seconds = 0.50 
+
+-- Limits [USER DATA: UPDATED DEFAULTS]
+local MAX_FACE_SWEATING = 2.00
+local MIN_FACE_SWEATING = 0.00 
+local MAX_BODY_SWEATING = 2.00
+local MIN_BODY_SWEATING = 0.00 
+
+local enable_roughness_control = true
+local face_roughness_value = 0.40
+local body_roughness_value = 0.40
+
+local debug_lock_sweat = false
+local debug_sweat_val = 1.00
+
+local enable_stamina_sweating = true
+local enable_motiondata_sweating = true
+local enable_actionguide_sweating = true
+local mod_enabled = true
+local debug_enabled = false 
+local is_history_expanded = false 
+
+local enable_face_sweating = true
+local enable_body_sweating = true
+
+local action_history = {}
+local last_captured_motion_id = -1
+local last_captured_guide_id = -1
+local notification_timer = 0
+local notification_msg = ""
+
+-- [AUTO EQUIP CHECK VARIABLES]
+local auto_equip_scan_enabled = true -- NEW TOGGLE
+local last_mesh_hash = ""
+local equip_check_timer = 0
+local EQUIP_CHECK_INTERVAL = 2000 -- Check every 2000ms (2 seconds)
+
+-- ==========================================
+-- ENVIRONMENT & WEATHER CONFIG
+-- ==========================================
+local EnvConfig = {
+    current_stage_id = -1,
+    current_stage_name_display = "", 
+    total_wet_mult = 1.0,
+    total_dry_mult = 1.0,
+
+    -- [USER DATA: STAGE DEFAULTS]
+    stage_settings = {
+        [0] = { name = "Stage 0", wet = 1.25, dry = 1.25 },
+        [1] = { name = "Stage 1", wet = 0.90, dry = 1.15 },
+        [2] = { name = "Stage 2", wet = 2.00, dry = 1.00 },
+        [3] = { name = "Stage 3", wet = 0.50, dry = 1.25 },
+        [4] = { name = "Stage 4", wet = 0.80, dry = 1.20 },
+        [9] = { name = "Stage 9", wet = 1.00, dry = 1.20 },
+        [10] = { name = "Stage 10", wet = 0.50, dry = 1.25 },
+        [11] = { name = "Stage 11", wet = 0.80, dry = 1.20 },
+        [12] = { name = "Stage 12", wet = 1.00, dry = 1.20 },
+        [13] = { name = "Stage 13", wet = 2.00, dry = 1.00 },
+        [14] = { name = "Stage 14", wet = 1.00, dry = 1.20 },
+        [15] = { name = "Stage 15", wet = 1.25, dry = 1.25 },
+    },
+
+    -- [USER DATA: WEATHER DEFAULTS]
+    weather = {
+        { field = "_HeatWave",   key = "w_heatwave",   wet = 2.0, dry = 1.5, is_active = false },
+        { field = "_HeavyRain",  key = "w_heavyrain",  wet = 5.0, dry = 0.1, is_active = false },
+        { field = "_SandStorm",  key = "w_sandstorm",  wet = 0.5, dry = 3.0, is_active = false },
+        { field = "_Blizzard",   key = "w_blizzard",   wet = 0.5, dry = 2.0, is_active = false },
+    }
+}
+local env_manager_class = "app.EnvironmentManager"
+
+-- ==========================================
+-- Hunter Data
+-- ==========================================
+local _M = {}
+_M.HunterData = {
+    StaminaData = -1,
+    MotionData = {},
+    SubActionData = {},
+    CurrentActionName = "",
+    CurrentActionGuideID = nil,
+    Hunter = nil 
+}
+
+-- ==========================================
+-- PERFORMANCE CACHE
+-- ==========================================
+local MaterialCache = {
+    IsValid = false,
+    FaceMaterials = {}, 
+    BodyMaterials = {} 
+}
+
+-- Lookup Tables
+local ActionGuideMap = {} 
+local MotionDataMap = {} 
+
+-- ==========================================
+-- Data Tables
+-- ==========================================
+local CustomMotionTbl = {
+    {0, 1, 73, 1, "motion"},
+    {0, 1, 521, 1, "motion"},
+    {0, 1, 523, 1, "motion"},
+    {0, 1, 135, 1, "motion"},
+    {0, 1, 69, 1, "motion"},
+    {0, 1, 331, 1, "motion"},
+    {0, 1, 172, 1, "motion"},
+    {0, 1, 97, 3.0, "stamina"},
+    {0, 1, 174, 3.0, "stamina"}
+}
+
+local DefaultMotionTbl = { 
+    {0, 1, 2, 1}, {0, 1, 4, 1}, {0, 1, 11, 1}, {0, 1, 36, 1}, {0, 1, 40, 1}, 
+    {0, 1, 46, 1}, {0, 1, 49, 1}, {0, 1, 50, 1}, {0, 1, 53, 1}, 
+    {0, 1, 62, 1}, {0, 1, 63, 1}, {0, 1, 64, 1}, {0, 1, 65, 1}, 
+    {0, 1, 66, 1}, {0, 1, 67, 1}, {0, 1, 68, 1}, {0, 1, 90, 1}, {0, 1, 94, 1}, 
+    {0, 1, 129, 1}, {0, 1, 133, 1}, {0, 1, 251, 1}, {0, 3, 93, 1}, {0, 3, 112, 1},
+    {0, 1, 32, 2}, {0, 1, 37, 2}, {0, 1, 47, 2}, {0, 1, 100, 2}, {0, 1, 101, 2}, 
+    {0, 1, 103, 2}, {0, 1, 107, 2}, {0, 1, 112, 2}, {0, 1, 113, 2}, {0, 1, 114, 2}, 
+    {0, 1, 115, 2}, {0, 1, 116, 2}, {0, 1, 117, 2}, {0, 1, 240, 2}, {0, 1, 253, 2}, 
+    {0, 1, 330, 2}, {0, 1, 350, 2}, {0, 1, 351, 2}, {0, 1, 352, 2}, {0, 1, 353, 2}, 
+    {0, 1, 354, 2}
+}
+
+local CustomActionGuideTbl = {}
+local DefaultActionGuideTbl = {
+    -- Greatsword
+{1329235968, "Jumping Charged Slash"}, {-1811259392, "Charge"}, {-1769468672, "Strong Charged Slash"},
+{-421454208, "Charge"}, {-1673173760, "Overhead Slash"}, {-1156222080, "Charge"}, {2095506176, "True Charged Slash"},
+{-2072799872, "Offset Rising Slash"}, {225253952, "Wide Slash"}, {1652940800, "Tackle"},
+{-101683424, "Leaping Wide Slash"}, {190453744, "Side Blow"}, {146633456, "Rising Slash"},
+{506494304, "Focus Slash: Perforate"}, {-1298833664, "Focus Slash: Perforate"}, {1405301888, "Strong Wide Slash"},
+-- Chargeblade
+{-584458432, "Sword: Weak Slash"}, {-406475264, "Sword: Shield Thrust"}, {937742400, "Sword: Jumping Slash Landing"},
+{-324722336, "Sword: Forward Slash"}, {530797824, "Sword: Return Stroke"}, {1314887424, "Sword: Roundslash"},
+{-268644672, "Charge"}, {1630431488, "Sword: Charged Double Slash"}, {1775176320, "Sword: Charged Rising Slash"},
+{1244106368, "Focus Slash: Double Rend"}, {441448704, "Axe: Dash Slam"}, {-296247648, "Sword: Condensed Element Slash"},
+{-1699645312, "Shield: Element Boost"}, {869165568, "Sword: Fade Slash"}, {-1598306688, "Sword: Morph Slash"},
+{794588032, "Axe: Element Discharge I"}, {-2127622656, "Axe: Rising Slash"}, {1581908864, "Axe: Overhead Slash"},
+{-1440144640, "Axe: Element Discharge II"}, {-1889821952, "Axe: Amped Element Discharge"},
+{1635818112, "Axe: Amped Element Discharge"}, {1126951936, "Axe: Amped Element Discharge Follow-up"},
+{-1288729984, "Elemental Roundslash"}, {181561280, "Axe: Rushing Element Discharge I"},
+{2051596032, "Axe: Morph Slash"}, {266499504, "Axe: Super Amped Element Discharge"},
+{2109388160, "Axe: Lateral Fade Slash"}, {1907177728, "Axe: Backstep Slash"}, {486902624, "Sword: Jumping Slash"},
+-- Longsword
+{-1997082496, "Overhead Slash"}, {-1065507968, "Crescent Slash"}, {1455994752, "Thrust"}, {-1036368000, "Rising Slash"},
+{1153596544, "Jumping Rising Slash"}, {-37508024, "Fade Slash"}, {762765376, "Spirit Step Slash"},
+{621496000, "Spirit Blade I"}, {1186424448, "Spirit Blade II"}, {-1476255872, "Spirit Blade III"},
+{852602816, "Spirit Roundslash"}, {-1116470656, "Spinning Crimson Slash"}, {-1997082496, "Crimson Slash I"},
+{1472591744, "Crimson Slash II"}, {-1065507968, "Crimson Slash III"}, {1930738944, "Spirit Charge"},
+{-1559988736, "Special Sheathe"}, {491596736, "Iai Spirit Slash"}, {1506281344, "Iai Slash"},
+{456426976, "Foresight Slash"}, {456426976, "Foresight Whirl Slash"}, {1569905664, "Focus Strike: Unbound Thrust"},
+{-1840683648, "Focus Strike: Unbound Thrust"}, {22163, "Spirit Thrust"}, {1048171072, "Spirit Thrust"},
+{1909693824, "Spirit Helm Breaker"}, {-1093563648, "Spirit Release Slash"}, {643151488, "Aerial Spirit Blade Draw"},
+{13933, "Dismount Attack"},
+-- Gunlance
+{329682016, "Lunging Upthrust"}, {-789417920, "Lateral Thrust II"}, {-551745024, "Wide Sweep"},
+{646080000, "Wyrmstake Full Blast"}, {1069952960, "Reload"}, {703375872, "Shelling"}, {-349299296, "Charge"},
+{-43537492, "Charged Shelling"}, {1671040640, "Moving Wide Sweep"}, {-2132440704, "Reload"},
+{1205828736, "Perfect Guard"}, {372457152, "Multi Wyrmstake Full Blast"}, {-1588566656, "Guard"},
+{-26915160, "Wyvern's Fire"}, {-1926268544, "Quick Reload"}, {-1562396032, "Rising Slash"},
+{-1347992960, "Overhead Smash"}, {-1677525760, "Burst Fire"}, {26863, "Dismount Attack"},
+{1940934784, "Lateral Thrust I"}, {1714223872, "Guard Thrust I"}, {1115267328, "Guard Thrust III"},
+{-847729408, "Sidestep"}, {452042176, "Jumping Smash"}, {-915528384, "Focus Strike: Drake Auger"},
+{-869946240, "Focus Strike: Drake Auger"}, {-2111931264, "Focus Strike: Drake Auger"}, {-1361289856, "Jumping Thrust"},
+{-699316544, "Power Clash"}, {1364206336, "Power Clash"}, {20715, "Quick Reload"}, {1777578112, "Stalwart Guard"},
+{-289223072, "Counter Rush"}, {-1594437120, "Guard Thrust II"}, {1497865856, "Wyrmstake Cannon"}, {629, "Quick Reload"},
+-- Bow
+{1514344832, "Aim/Focus"}, {840735488, "Shoot"}, {1920365056, "Charging Sidestep"}, {-125532448, "Dragon Piercer"},
+{15507, "Dragon Piercer"}, {-1657138304, "Thousand Dragons"},
+-- Dual Blades
+{1562259072, "Demon Fangs"}, {-268803040, "Twofold Demon Slash"}, {-1092490368, "Sixfold Demon Slash"},
+{1061310464, "Double Slash"}, {1802004864, "Double Slash Return Stroke"}, {144065008, "Circle Slash"},
+{927994752, "Lunging Strike"}, {-1541920000, "Roundslash"}, {-1497146240, "Rising Slash"}, {829880384, "Sliding Slash"},
+{154975120, "Sliding Slash"}, {995066176, "Jumping Doubleslash"}, {-1928036352, "Focus Strike: Turning Tide"},
+{-372107104, "Focus Strike: Turning Tide"}, {-719512000, "Midair Spinning Blade Dance"},
+{-1642044928, "Midair Spinning Blade Dance Landing"}, {211121424, "Spinning Blade Dance Finisher"},
+{-1366590208, "Spinning Blade Dance Finisher Landing"}, {-1398199424, "Heavenly Blade Dance"},
+{-45955064, "Heavenly Blade Dance Landing"}, {165650304, "Demon Mode"}, {1516296832, "Demon Mode"},
+{1262752256, "Demon Dodge"}, {1562259072, "Demon Fangs"}, {-268803040, "Twofold Demon Slash"},
+{-1092490368, "Sixfold Demon Slash"}, {215332432, "Demon Flurry Rush"}, {-1318603136, "Roundslash"},
+{1443799168, "Double Roundslash"}, {-1364415872, "Rising Slash"}, {300353024, "Blade Dance I"},
+{1565251968, "Blade Dance II"}, {72416008, "Blade Dance III"}, {-1698437888, "Demon Flurry I"},
+{1304483584, "Demon Flurry II"}, {1912740608, "Left Fade Slash"}, {-291922400, "Right Fade Slash"},
+-- Misc
+{1413, "Dismount Attack"}, {385008192, "Riding Attack"},
+-- Sword and Shield
+{-669292416, "Advancing Slash"}, {771635840, "Diagonal Rising Slash"}, {-468041344, "Spinning Reaper"},
+{-1520769024, "Lateral Slash"}, {-365669696, "Spinning Rising Slash"}, {937851328, "Chop"}, {1140208384, "Chop"},
+{-278451072, "Charged Slash"}, {833415424, "Scaling Slash"}, {-1979692928, "Jumping Slash"}, {105498080, "Backstep"},
+{-76675704, "Falling Bash"}, {-1201359616, "Plunging Thrust"}, {-1114434688, "Shield Bash"}, {-439662016, "Hard Bash"},
+{-567233408, "Perfect Guard"}, {-1943029120, "Sliding Swipe"}, {-1544624512, "Jumping Rising Slash Landing"},
+{-432023520, "Standby"}, {255974432, "Guard Slash"}, {1299070464, "Guard"}, {-1591131136, "Counter Slash"},
+{-1093479680, "Rising Slash"}, {1521711744, "Evade"},
+-- Switch Axe
+{143967248, "Axe: Overhead Slash"}, {372106112, "Axe: Spiral Burst Slash"}, {-1140363264, "Axe: Wild Swing"},
+{-255976208, "Axe: Heavy Slam"}, {1855746432, "Sword: Left Rising Slash"}, {150431184, "Sword: Double Slash"},
+{-1737891328, "Sword: Heavenward Flurry"}, {-553980096, "Sword: Right Rising Slash"},
+{-1084801536, "Sword: Overhead Slash"}, {-1209716864, "Axe: Morph Slash"}, {-977580416, "Sword: Overhead Morph Slash"},
+{888503808, "Sword: Downward Fade Slash"}, {1711220352, "Axe: Forward Overhead Slash"}, {1338690432, "Axe: Side Slash"},
+{-1972073600, "Axe: Morph Sweep"}, {-84158064, "Unbridled Slash"}, {26943142, "Full Release Slash"},
+{-1887083904, "Axe: Morph Rising Double Slash"}, {-1897889664, "Offset Attack"},
+{166716544, "Axe: Follow-up Heavy Slam"}, {-128645088, "Axe: Offset Rising Slash"},
+{1659893248, "Axe: Follow-up Morph Slash"}, {-28020688, "Element Discharge"},
+{-1280417792, "Element Discharge Finisher"}, {1649891712, "Unbridled Slash"}, {2050047744, "Axe: Morph Slash"},
+{486853024, "Focus Assault: Morph Combination"}, {1893422208, "Zero Sum Discharge"},
+{-1011370176, "Quick Zero Sum Finishing Discharge"}, {67143400, "Zero Sum Discharge Finisher"},
+{-1381817088, "Sword: Counter Rising Slash"}, {1185187840, "Axe: Fade Slash"},
+{751151936, "Sword: Counter Rising Slash"}, {1658039040, "Sword: Morph Double Slash"},
+{-694198912, "Power Axe Finisher"},
+-- Hunting Horn
+{-201995088, "Left Swing"}, {1180191104, "Forward Smash"}, {-20758400, "Hilt Stab"}, {800331776, "Flourish"},
+{-671947712, "Backwards Strike"}, {-208341008, "Perform"}, {113146256, "Perform"}, {-1751799040, "Performance Beat"},
+{-6258827, "Encore"}, {-1842698112, "Resounding Melody"}, {166644960, "Right Swing"}, {386094144, "Hilt Stab"},
+{-787884800, "Overhead Smash"}, {2056927744, "Overhead Smash Follow-up Attack"}, {-1250021248, "Encore"},
+{-1457110272, "Focus Strike: Reverb"}, {-466143936, "Echo Bubble"}, {-1354698240, "Melody of Life"},
+{1368552832, "Hilt Stab"}, {-286523680, "Perform"}, {1994995200, "Performance Landing"},
+{1317018112, "Focus Strike: Reverb"}, {14805, "Charge"}, {-1113914624, "Offset Melody"}, {1763677568, "Jumping Smash"},
+-- Lance
+{-572647232, "Mid Thrust I"}, {-61029700, "Mid Thrust II"}, {31930464, "Mid Thrust III"}, {-752102912, "Triple Thrust"},
+{-400225664, "High Thrust I"}, {-1128612864, "High Thrust II"}, {-1488459392, "High Thrust III"}, {24016, "Charge"},
+{-227934736, "Wide Sweep"}, {-1607854080, "Shield Attack"}, {-1479629056, "Leaping Thrust"}, {1667857, "Guard Dash"},
+{-1390119168, "Dash Attack"}, {1253815936, "Finishing Twin Thrust"}, {1210626816, "Dash Turn"},
+{728592256, "Reverse Attack"}, {696236864, "Finishing Thrust"}, {22141902, "Advancing Jump"},
+{-880486016, "Jumping Thrust Landing"}, {894130624, "Payback Thrust"}, {-1209497216, "Power Guard"},
+{16092, "Grand Retribution Thrust"}, {-222102848, "Guard"}, {1728314368, "Focus Strike: Victory Thrust"},
+{-1912639616, "Focus Strike: Victory Thrust"}, {-2112164096, "Guard Thrust"}
+}
+
+local function RebuildLookupTables()
+    ActionGuideMap = {}
+    MotionDataMap = {}
+    local function addToGuideMap(tbl) for _, v in ipairs(tbl) do ActionGuideMap[v[1]] = v[3] or 1 end end
+    local function addToMotionMap(tbl) for _, v in ipairs(tbl) do MotionDataMap[tostring(v[1]).."_"..tostring(v[2]).."_"..tostring(v[3])] = v[4] or 1 end end
+    addToGuideMap(DefaultActionGuideTbl)
+    addToGuideMap(CustomActionGuideTbl)
+    addToMotionMap(DefaultMotionTbl)
+    addToMotionMap(CustomMotionTbl)
+end
+
+-- ==========================================
+-- Save / Load
+-- ==========================================
+local function saveSettings()
+    local Sweat = {}
+    Sweat.cur_lang_index = cur_lang_index
+    Sweat.SWEATING_INCREASE_RATE = round3(SWEATING_INCREASE_RATE)
+    Sweat.SWEATING_DECREASE_RATE = round3(SWEATING_DECREASE_RATE)
+    Sweat.SWEATING_INCREASE_RATE_BATTLE = round3(SWEATING_INCREASE_RATE_BATTLE)
+    Sweat.SWEATING_MOTIONDATA_INCREASE_RATE = round3(SWEATING_MOTIONDATA_INCREASE_RATE)
+    Sweat.SWEATING_ACTIONGUIDE_INCREASE_RATE = round3(SWEATING_ACTIONGUIDE_INCREASE_RATE)
+    Sweat.SWEATING_ENV_PASSIVE_RATE = round3(SWEATING_ENV_PASSIVE_RATE)
+    
+    Sweat.update_interval_seconds = round2(update_interval_seconds)
+    Sweat.enable_stamina_sweating = enable_stamina_sweating
+    Sweat.enable_motiondata_sweating = enable_motiondata_sweating
+    Sweat.enable_actionguide_sweating = enable_actionguide_sweating
+    Sweat.mod_enabled = mod_enabled
+    Sweat.debug_enabled = debug_enabled
+    Sweat.auto_equip_scan_enabled = auto_equip_scan_enabled -- Save Auto Scan Status
+    Sweat.enable_face_sweating = enable_face_sweating
+    Sweat.enable_body_sweating = enable_body_sweating
+    Sweat.MAX_FACE_SWEATING = round3(MAX_FACE_SWEATING)
+    Sweat.MIN_FACE_SWEATING = round3(MIN_FACE_SWEATING) 
+    Sweat.MAX_BODY_SWEATING = round3(MAX_BODY_SWEATING)
+    Sweat.MIN_BODY_SWEATING = round3(MIN_BODY_SWEATING) 
+    Sweat.enable_roughness_control = enable_roughness_control
+    Sweat.face_roughness_value = round3(face_roughness_value)
+    Sweat.body_roughness_value = round3(body_roughness_value)
+    Sweat.CustomMotionTbl = CustomMotionTbl
+    Sweat.CustomActionGuideTbl = CustomActionGuideTbl
+    
+    local saved_stages = {}
+    for k, v in pairs(EnvConfig.stage_settings) do
+        saved_stages[tostring(k)] = {
+            name = v.name,
+            wet = round2(v.wet),
+            dry = round2(v.dry)
+        }
+    end
+    Sweat.EnvStageSettings = saved_stages
+    
+    local saved_weather = {}
+    for i, w in ipairs(EnvConfig.weather) do 
+        saved_weather[i] = { wet = round2(w.wet), dry = round2(w.dry) } 
+    end
+    Sweat.EnvWeatherSettings = saved_weather
+    
+    json.dump_file("SweatSystem.json", Sweat)
+    RebuildLookupTables() 
+end
+
+local function loadSettings()
+    local Sweat = json.load_file("SweatSystem.json")
+    if not Sweat then return end
+
+    if Sweat.cur_lang_index then cur_lang_index = Sweat.cur_lang_index end
+    if Sweat.SWEATING_INCREASE_RATE then SWEATING_INCREASE_RATE = round3(Sweat.SWEATING_INCREASE_RATE) end
+    if Sweat.SWEATING_DECREASE_RATE then SWEATING_DECREASE_RATE = round3(Sweat.SWEATING_DECREASE_RATE) end
+    if Sweat.SWEATING_INCREASE_RATE_BATTLE then SWEATING_INCREASE_RATE_BATTLE = round3(Sweat.SWEATING_INCREASE_RATE_BATTLE) end
+    if Sweat.SWEATING_MOTIONDATA_INCREASE_RATE then SWEATING_MOTIONDATA_INCREASE_RATE = round3(Sweat.SWEATING_MOTIONDATA_INCREASE_RATE) end
+    if Sweat.SWEATING_ACTIONGUIDE_INCREASE_RATE then SWEATING_ACTIONGUIDE_INCREASE_RATE = round3(Sweat.SWEATING_ACTIONGUIDE_INCREASE_RATE) end
+    if Sweat.SWEATING_ENV_PASSIVE_RATE then SWEATING_ENV_PASSIVE_RATE = round3(Sweat.SWEATING_ENV_PASSIVE_RATE) end
+    
+    if Sweat.update_interval_seconds then update_interval_seconds = round2(Sweat.update_interval_seconds) end
+    if Sweat.enable_stamina_sweating ~= nil then enable_stamina_sweating = Sweat.enable_stamina_sweating end
+    if Sweat.enable_motiondata_sweating ~= nil then enable_motiondata_sweating = Sweat.enable_motiondata_sweating end
+    if Sweat.enable_actionguide_sweating ~= nil then enable_actionguide_sweating = Sweat.enable_actionguide_sweating end
+    if Sweat.mod_enabled ~= nil then mod_enabled = Sweat.mod_enabled end
+    if Sweat.debug_enabled ~= nil then debug_enabled = Sweat.debug_enabled end
+    if Sweat.auto_equip_scan_enabled ~= nil then auto_equip_scan_enabled = Sweat.auto_equip_scan_enabled end -- Load Auto Scan Status
+    if Sweat.enable_face_sweating ~= nil then enable_face_sweating = Sweat.enable_face_sweating end
+    if Sweat.enable_body_sweating ~= nil then enable_body_sweating = Sweat.enable_body_sweating end
+    if Sweat.MAX_FACE_SWEATING then MAX_FACE_SWEATING = round3(Sweat.MAX_FACE_SWEATING) end
+    if Sweat.MIN_FACE_SWEATING then MIN_FACE_SWEATING = round3(Sweat.MIN_FACE_SWEATING) end
+    if Sweat.MAX_BODY_SWEATING then MAX_BODY_SWEATING = round3(Sweat.MAX_BODY_SWEATING) end
+    if Sweat.MIN_BODY_SWEATING then MIN_BODY_SWEATING = round3(Sweat.MIN_BODY_SWEATING) end
+    if Sweat.enable_roughness_control ~= nil then enable_roughness_control = Sweat.enable_roughness_control end
+    if Sweat.face_roughness_value then face_roughness_value = round3(Sweat.face_roughness_value) end
+    if Sweat.body_roughness_value then body_roughness_value = round3(Sweat.body_roughness_value) end
+    
+    if Sweat.CustomMotionTbl then CustomMotionTbl = Sweat.CustomMotionTbl end
+    if Sweat.CustomActionGuideTbl then CustomActionGuideTbl = Sweat.CustomActionGuideTbl end
+    
+    if Sweat.EnvStageSettings then 
+        EnvConfig.stage_settings = {}
+        for k, v in pairs(Sweat.EnvStageSettings) do
+            local id = tonumber(k)
+            if id then
+                EnvConfig.stage_settings[id] = {
+                    name = v.name,
+                    wet = v.wet,
+                    dry = v.dry
+                }
+            end
+        end
+    end
+    
+    if Sweat.EnvWeatherSettings then 
+        for i, saved_w in ipairs(Sweat.EnvWeatherSettings) do
+            if EnvConfig.weather[i] then
+                EnvConfig.weather[i].wet = saved_w.wet
+                EnvConfig.weather[i].dry = saved_w.dry
+            end
+        end
+    end
+    RebuildLookupTables()
+end
+
+-- ==========================================
+-- Game Data Reading
+-- ==========================================
+local function GetHunterData()
+    if not _M.HunterData.Hunter then
+        _M.HunterData.Hunter = Core.GetPlayerCharacter()
+    end
+    local hunter = _M.HunterData.Hunter
+    if Core.IsLoading() or not hunter then return false end
+    if not _M.HunterData.Stamina then _M.HunterData.Stamina = hunter:get_HunterStamina() end
+    if _M.HunterData.Stamina then _M.HunterData.StaminaData = _M.HunterData.Stamina:get_Stamina() end
+    _M.HunterData.IsInBattle = Core.IsInBattle()
+    _M.HunterData.CurrentActionName = Core.GetCurrentActionName()
+    local actionController = hunter:get_BaseActionController()
+    if actionController then
+        local currentAction = actionController:get_CurrentAction()
+        local guideID = nil
+        if currentAction then guideID = currentAction._ActionGuideID or nil end
+        _M.HunterData.CurrentActionGuideID = (guideID and guideID ~= -1) and guideID or nil
+    end
+    return true
+end
+
+local function GetPlayerMotionAndActionData()
+    local motion_data = Core.GetPlayerMotionData()
+    if motion_data then _M.HunterData.MotionData = motion_data end
+    local sub_action_data = Core.GetPlayerSubActionData()
+    if sub_action_data then _M.HunterData.SubActionData = sub_action_data end
+end
+
+-- ==========================================
+-- ENVIRONMENT LOGIC
+-- ==========================================
+local function UpdateEnvironmentState()
+    local env_man = sdk.get_managed_singleton(env_manager_class)
+    if not env_man then return end
+
+    local stage_id = env_man:get_field("_CurrentStage")
+    if stage_id then
+        EnvConfig.current_stage_id = stage_id
+    end
+
+    local wet = 1.0
+    local dry = 1.0
+
+    local s_conf = EnvConfig.stage_settings[EnvConfig.current_stage_id]
+    if s_conf then
+        wet = wet * s_conf.wet
+        dry = dry * s_conf.dry
+        EnvConfig.current_stage_name_display = s_conf.name
+    else
+        EnvConfig.current_stage_name_display = nil 
+    end
+
+    for _, w_conf in ipairs(EnvConfig.weather) do
+        w_conf.is_active = false
+        local field_obj = env_man:get_field(w_conf.field)
+        if field_obj then
+            local is_active = field_obj:call("get_IsActive")
+            if is_active then
+                w_conf.is_active = is_active
+                wet = wet * w_conf.wet
+                dry = dry * w_conf.dry
+            end
+        end
+    end
+
+    EnvConfig.total_wet_mult = wet
+    EnvConfig.total_dry_mult = dry
+end
+
+-- ==========================================
+-- Logic: Update Sweating
+-- ==========================================
+local function updateSweating()
+    local current_stamina = _M.HunterData.StaminaData or -1
+    local time_multiplier = math_max(0.01, update_interval_seconds)
+    
+    local final_wet_mult = EnvConfig.total_wet_mult
+    local final_dry_mult = EnvConfig.total_dry_mult
+
+    if enable_stamina_sweating and current_stamina < last_stamina_value then
+        local val = SWEATING_INCREASE_RATE * final_wet_mult * time_multiplier
+        face_sweating_value = face_sweating_value + val
+        body_sweating_value = body_sweating_value + val
+    end
+
+    if enable_motiondata_sweating then
+        local motion_id = _M.HunterData.MotionData.MotionID or 0
+        local sub_action_motion_id = _M.HunterData.SubActionData.MotionID or 0
+        local sub_action_motion_bank_id = _M.HunterData.SubActionData.MotionBankID or 0
+        local key = tostring(sub_action_motion_bank_id) .. "_" .. tostring(sub_action_motion_id) .. "_" .. tostring(motion_id)
+        local mult = MotionDataMap[key]
+        if mult then
+            local val = (SWEATING_MOTIONDATA_INCREASE_RATE * mult) * final_wet_mult * time_multiplier
+            face_sweating_value = face_sweating_value + val
+            body_sweating_value = body_sweating_value + val
+        end
+    end
+
+    if enable_actionguide_sweating then
+        local action_guide_id = _M.HunterData.CurrentActionGuideID
+        if action_guide_id then
+            local mult = ActionGuideMap[action_guide_id]
+            if mult then
+                local val = (SWEATING_ACTIONGUIDE_INCREASE_RATE * mult) * final_wet_mult * time_multiplier
+                face_sweating_value = face_sweating_value + val
+                body_sweating_value = body_sweating_value + val
+            end
+        end
+    end
+
+    if _M.HunterData.IsInBattle then
+        local val = SWEATING_INCREASE_RATE_BATTLE * final_wet_mult * time_multiplier
+        face_sweating_value = face_sweating_value + val
+        body_sweating_value = body_sweating_value + val
+    end
+
+    if final_wet_mult > 1.0 then
+        local passive_env_increase = SWEATING_ENV_PASSIVE_RATE * (final_wet_mult - 1.0) * time_multiplier
+        face_sweating_value = face_sweating_value + passive_env_increase
+        body_sweating_value = body_sweating_value + passive_env_increase
+    end
+
+    local dec_val = SWEATING_DECREASE_RATE * final_dry_mult * time_multiplier
+    face_sweating_value = face_sweating_value - dec_val
+    body_sweating_value = body_sweating_value - dec_val
+
+    if debug_lock_sweat then
+        face_sweating_value = debug_sweat_val
+        body_sweating_value = debug_sweat_val
+    end
+
+    face_sweating_value = math_max(MIN_FACE_SWEATING, math_min(MAX_FACE_SWEATING, face_sweating_value))
+    body_sweating_value = math_max(MIN_BODY_SWEATING, math_min(MAX_BODY_SWEATING, body_sweating_value))
+    last_stamina_value = current_stamina
+end
+
+-- ==========================================
+-- Visuals & Mesh Detection
+-- ==========================================
+local getComponent = sdk.find_type_definition('via.GameObject'):get_method('getComponent(System.Type)')
+local function get_gameobject_component(gameObject, componentType)
+    if not gameObject then return nil end
+    return getComponent:call(gameObject, sdk.typeof(componentType))
+end
+
+-- Helper for Auto Scan: Calculate a unique string based on current Mesh Pointers
+local function GetCurrentMeshHash()
+    local hash_str = ""
+    local PlayerMgr = sdk.get_managed_singleton("app.PlayerManager")
+    if not PlayerMgr then return "" end
+    local PlayerMaster = PlayerMgr:getMasterPlayer()
+    if not PlayerMaster then return "" end
+    local PlayerObj = PlayerMaster:get_Object()
+    if not PlayerObj then return "" end
+
+    local transform = get_gameobject_component(PlayerObj, 'via.Transform')
+    if not transform then return "" end
+
+    local child = transform:get_Child()
+    while child do
+        local go = child:get_GameObject()
+        if go then
+            local mesh = get_gameobject_component(go, 'via.render.Mesh')
+            if mesh then
+                hash_str = hash_str .. tostring(mesh)
+            end
+        end
+        child = child:get_Next()
+    end
+    
+    local faceObj = transform:find('Player_Face')
+    if faceObj then
+        local faceMesh = get_gameobject_component(faceObj, 'via.render.Mesh')
+        if faceMesh then
+             hash_str = hash_str .. tostring(faceMesh)
+        end
+    end
+
+    return hash_str
+end
+
+local function ScanAndCacheMaterials()
+    MaterialCache.FaceMaterials = {}
+    MaterialCache.BodyMaterials = {}
+    MaterialCache.IsValid = false
+
+    local PlayerMgr = sdk.get_managed_singleton("app.PlayerManager")
+    if not PlayerMgr then return end
+    
+    local PlayerMaster = PlayerMgr:getMasterPlayer()
+    if not PlayerMaster then return end
+    
+    local PlayerInfo = PlayerMgr:getMasterPlayer():get_field('<Character>k__BackingField')
+    if not PlayerInfo or PlayerInfo:get_IsSetUp() ~= true then return end
+
+    local PlayerObj = PlayerMaster:get_Object()
+    if not PlayerObj then return end
+
+    local transform = get_gameobject_component(PlayerObj, 'via.Transform')
+    if not transform then return end
+    
+    local faceObj = transform:find('Player_Face')
+    local bodyObj = transform 
+
+    if faceObj then
+        local faceMesh = get_gameobject_component(faceObj, 'via.render.Mesh')
+        if faceMesh then
+            local count = faceMesh:get_MaterialNum()
+            if count then
+                for i = 0, count - 1 do
+                    local mat_name = faceMesh:getMaterialName(i)
+                    if mat_name == "face" or mat_name == "Face" then
+                        table_insert(MaterialCache.FaceMaterials, { mesh = faceMesh, index = i })
+                    end
+                end
+            end
+        end
+    end
+
+    local child = bodyObj:get_Child()
+    while child do
+        local go = child:get_GameObject()
+        if go then
+            local mesh = get_gameobject_component(go, 'via.render.Mesh')
+            if mesh then
+                local count = mesh:get_MaterialNum()
+                if count then
+                    for i = 0, count - 1 do
+                        local mat_name = mesh:getMaterialName(i)
+                        if (mat_name == "skin" or mat_name == "skin_UseSC" or mat_name == "Skin" or mat_name == "Body" or mat_name == "FNMNipples") then
+                            table_insert(MaterialCache.BodyMaterials, { mesh = mesh, index = i })
+                        end
+                    end
+                end
+            end
+        end
+        child = child:get_Next()
+    end
+
+    MaterialCache.IsValid = true
+    applied_face_sweat = -1; applied_body_sweat = -1; applied_face_rough = -1; applied_body_rough = -1
+    
+    -- Sync Hash after scan to prevent loop
+    last_mesh_hash = GetCurrentMeshHash()
+end
+
+local function ApplyWetnessToPlayerCached()
+    if not MaterialCache.IsValid then ScanAndCacheMaterials() if not MaterialCache.IsValid then return end end
+    local threshold = 0.001 
+
+    if enable_face_sweating then
+        local update_sweat = math_abs(face_sweating_value - applied_face_sweat) > threshold
+        local update_rough = enable_roughness_control and (math_abs(face_roughness_value - applied_face_rough) > threshold)
+        if update_sweat or update_rough then
+            for _, entry in ipairs(MaterialCache.FaceMaterials) do
+                if sdk.is_managed_object(entry.mesh) then
+                    if update_sweat then entry.mesh:setMaterialFloat(entry.index, 69, face_sweating_value) end
+                    if update_rough then entry.mesh:setMaterialFloat(entry.index, 38, face_roughness_value) end
+                else MaterialCache.IsValid = false; return end
+            end
+            if update_sweat then applied_face_sweat = face_sweating_value end
+            if update_rough then applied_face_rough = face_roughness_value end
+        end
+    end
+
+    if enable_body_sweating then
+        local update_sweat = math_abs(body_sweating_value - applied_body_sweat) > threshold
+        local update_rough = enable_roughness_control and (math_abs(body_roughness_value - applied_body_rough) > threshold)
+        if update_sweat or update_rough then
+            for _, entry in ipairs(MaterialCache.BodyMaterials) do
+                if sdk.is_managed_object(entry.mesh) then
+                    if update_sweat then entry.mesh:setMaterialFloat(entry.index, 53, body_sweating_value) end
+                    if update_rough then entry.mesh:setMaterialFloat(entry.index, 25, body_roughness_value) end
+                else MaterialCache.IsValid = false; return end
+            end
+            if update_sweat then applied_body_sweat = body_sweating_value end
+            if update_rough then applied_body_rough = body_roughness_value end
+        end
+    end
+end
+
+-- ==========================================
+-- Debug History
+-- ==========================================
+local function UpdateActionHistory()
+    if not _M.HunterData.MotionData then return end
+    local motion_id = _M.HunterData.MotionData.MotionID or 0
+    local sub_action_motion_id = _M.HunterData.SubActionData and _M.HunterData.SubActionData.MotionID or 0
+    local sub_action_motion_bank_id = _M.HunterData.SubActionData and _M.HunterData.SubActionData.MotionBankID or 0
+    local guide_id = _M.HunterData.CurrentActionGuideID
+    local action_name = _M.HunterData.CurrentActionName or "Unknown"
+
+    local entry = nil
+    if guide_id and guide_id ~= -1 and guide_id ~= last_captured_guide_id then
+        last_captured_guide_id = guide_id
+        entry = { type = "ActionGuide", id = guide_id, name = action_name }
+    elseif motion_id ~= last_captured_motion_id then
+        last_captured_motion_id = motion_id
+        entry = { type = "MotionData", bank = sub_action_motion_bank_id, sub = sub_action_motion_id, motion = motion_id }
+    end
+    if entry then
+        table_insert(action_history, 1, entry)
+        if #action_history > 10 then table_remove(action_history) end 
+    end
+end
+
+local function IsInCustomMotion(bank, sub, mot)
+    local key = tostring(bank) .. "_" .. tostring(sub) .. "_" .. tostring(mot)
+    return MotionDataMap[key] ~= nil
+end
+local function IsInCustomGuide(id) return ActionGuideMap[id] ~= nil end
+
+-- ==========================================
+-- UI Rendering
+-- ==========================================
+re.on_draw_ui(function()
+    if imgui.tree_node(T("settings")) then
+        local changed, new_index = imgui.combo("Language / 语言", cur_lang_index, {"English", "中文"})
+        if changed then cur_lang_index = new_index end
+
+        imgui.spacing()
+        _, debug_enabled = imgui.checkbox(T("debug_mode"), debug_enabled)
+
+        if debug_enabled then
+            imgui.text_colored(T("debug_values"), 0xFF00FFFF)
+            imgui.text(string_format(T("debug_val_fmt"), face_sweating_value, body_sweating_value))
+            imgui.text(string_format(T("debug_env_wet"), EnvConfig.total_wet_mult))
+            imgui.text(string_format(T("debug_env_dry"), EnvConfig.total_dry_mult))
+            
+            local status = auto_equip_scan_enabled and T("env_weather_active") or T("env_weather_inactive")
+            imgui.text_colored(T("auto_scan_info") .. status, 0xFFFFFF00)
+            
+            imgui.spacing()
+            _, debug_lock_sweat = imgui.checkbox(T("debug_lock"), debug_lock_sweat)
+            if debug_lock_sweat then
+                local c, v = imgui.slider_float(T("debug_lock_val"), debug_sweat_val, 0.0, 2.0, "%.3f")
+                if c then debug_sweat_val = round3(v) end
+            end
+
+            imgui.spacing()
+            -- [NEW SWITCH]
+            _, auto_equip_scan_enabled = imgui.checkbox(T("auto_scan_chk"), auto_equip_scan_enabled)
+            -- [RESCAN BUTTON]
+            if imgui.button(T("btn_recan")) then ScanAndCacheMaterials() end
+
+            imgui.separator()
+            is_history_expanded = imgui.tree_node(T("hist_title"))
+            if is_history_expanded then
+                if notification_timer > 0 then
+                    imgui.text_colored(notification_msg, 0xFF00FF00)
+                    notification_timer = notification_timer - 1
+                end
+                if imgui.button(T("hist_clear")) then action_history = {} end
+                imgui.separator()
+                for i, action in ipairs(action_history) do
+                    imgui.push_id(i)
+                    if action.type == "ActionGuide" then
+                        imgui.text(string_format("Guide: %d (%s)", action.id, action.name))
+                        if imgui.button(T("add_to_guide")) then
+                            if not IsInCustomGuide(action.id) then
+                                table_insert(CustomActionGuideTbl, {action.id, action.name, 1, "guide"})
+                                notification_msg = T("added_msg"); notification_timer = 120; saveSettings()
+                            else notification_msg = T("exists_msg"); notification_timer = 120 end
+                        end
+                    elseif action.type == "MotionData" then
+                        imgui.text(string_format("Motion: B:%d S:%d M:%d", action.bank, action.sub, action.motion))
+                        if imgui.button(T("add_to_motion")) then
+                            if not IsInCustomMotion(action.bank, action.sub, action.motion) then
+                                table_insert(CustomMotionTbl, {action.bank, action.sub, action.motion, 1, "motion"})
+                                notification_msg = T("added_msg"); notification_timer = 120; saveSettings()
+                            else notification_msg = T("exists_msg"); notification_timer = 120 end
+                        end
+                    end
+                    imgui.separator()
+                    imgui.pop_id()
+                end
+                imgui.tree_pop()
+            end
+        else
+            is_history_expanded = false
+        end
+        
+        imgui.separator()
+        if imgui.tree_node(T("custom_actions")) then
+            local has_any = false
+            if #CustomActionGuideTbl > 0 then
+                has_any = true
+                imgui.text_colored(T("custom_guide_list"), 0xFFFFFF00)
+                for i, v in ipairs(CustomActionGuideTbl) do
+                    imgui.push_id("cg"..i)
+                    imgui.text(string_format("%s %s (ID:%d)", T("type_guide"), v[2], v[1]))
+                    imgui.same_line()
+                    if imgui.button(T("btn_delete")) then table_remove(CustomActionGuideTbl, i); saveSettings() end
+                    imgui.pop_id()
+                end
+                imgui.separator()
+            end
+            if #CustomMotionTbl > 0 then
+                has_any = true
+                imgui.text_colored(T("custom_motion_list"), 0xFFFFFF00)
+                for i, v in ipairs(CustomMotionTbl) do
+                    imgui.push_id("cm"..i)
+                    local type_str = (v[5] == "stamina") and T("type_stamina") or T("type_motion")
+                    imgui.text(string_format("%s B:%d S:%d M:%d", type_str, v[1], v[2], v[3]))
+                    imgui.same_line()
+                    if imgui.button(T("btn_delete")) then table_remove(CustomMotionTbl, i); saveSettings() end
+                    imgui.pop_id()
+                end
+            end
+            if not has_any then imgui.text_colored(T("no_custom_actions"), 0xFF888888) end
+            imgui.tree_pop()
+        end
+
+        imgui.separator()
+        _, mod_enabled = imgui.checkbox(T("enable_mod"), mod_enabled)
+        
+        -- GLOBAL PARAMS
+        if imgui.tree_node(T("global_params")) then
+            imgui.text(T("refresh_interval"))
+            local c_int, v_int = imgui.slider_float("##UpdateInterval", update_interval_seconds, 0.05, 5.0, "%.2f")
+            if c_int then update_interval_seconds = round2(v_int) end
+            imgui.text_colored(T("refresh_desc"), 0xFFAAAAAA)
+            imgui.separator()
+            imgui.text(T("rate_stamina")); local c1, v1 = imgui.slider_float("##IncStamina", SWEATING_INCREASE_RATE, SWEATING_LIMIT_MIN, SWEATING_LIMIT_MAX, "%.3f"); if c1 then SWEATING_INCREASE_RATE = round3(v1) end
+            imgui.text(T("rate_action")); local c2, v2 = imgui.slider_float("##IncGuide", SWEATING_ACTIONGUIDE_INCREASE_RATE, SWEATING_LIMIT_MIN, SWEATING_LIMIT_MAX, "%.3f"); if c2 then SWEATING_ACTIONGUIDE_INCREASE_RATE = round3(v2) end
+            imgui.text(T("rate_motion")); local c3, v3 = imgui.slider_float("##IncMotion", SWEATING_MOTIONDATA_INCREASE_RATE, SWEATING_LIMIT_MIN, SWEATING_LIMIT_MAX, "%.3f"); if c3 then SWEATING_MOTIONDATA_INCREASE_RATE = round3(v3) end
+            imgui.text(T("rate_decrease")); local c4, v4 = imgui.slider_float("##DecRate", SWEATING_DECREASE_RATE, SWEATING_LIMIT_MIN, SWEATING_LIMIT_MAX, "%.3f"); if c4 then SWEATING_DECREASE_RATE = round3(v4) end
+            imgui.text(T("rate_battle")); local c5, v5 = imgui.slider_float("##IncBattle", SWEATING_INCREASE_RATE_BATTLE, SWEATING_LIMIT_MIN, SWEATING_LIMIT_MAX, "%.3f"); if c5 then SWEATING_INCREASE_RATE_BATTLE = round3(v5) end
+            imgui.tree_pop()
+        end
+
+        -- ===========================
+        -- ENVIRONMENT SETTINGS
+        -- ===========================
+        if imgui.tree_node(T("env_params")) then
+            imgui.text(T("rate_env_passive"))
+            local cp, vp = imgui.slider_float("##EnvPassive", SWEATING_ENV_PASSIVE_RATE, 0.0, 0.1, "%.3f")
+            if cp then SWEATING_ENV_PASSIVE_RATE = round3(vp) end
+            imgui.text_colored(T("desc_env_passive"), 0xFFAAAAAA)
+            imgui.separator()
+
+            local display_name = EnvConfig.current_stage_name_display
+            if not display_name then
+                display_name = string_format("%s (ID: %d)", T("status_unconfigured"), EnvConfig.current_stage_id)
+            end
+            
+            imgui.text_colored(display_name, 0xFF00FFFF)
+            imgui.text(T("lbl_cur_stage_id") .. tostring(EnvConfig.current_stage_id))
+            
+            imgui.separator()
+            if imgui.tree_node(T("env_cur_stage")) then
+                if EnvConfig.current_stage_id ~= -1 then
+                    local s_conf = EnvConfig.stage_settings[EnvConfig.current_stage_id]
+                    if not s_conf then
+                        if imgui.button(T("env_create")) then
+                            EnvConfig.stage_settings[EnvConfig.current_stage_id] = { name = "Stage " .. EnvConfig.current_stage_id, wet = 1.0, dry = 1.0 }
+                        end
+                    else
+                        local changed_n, new_name = imgui.input_text(T("env_rename"), s_conf.name)
+                        if changed_n then s_conf.name = new_name end
+                        _, s_conf.wet = imgui.slider_float(T("env_wet_mult"), s_conf.wet, 0.0, 5.0, "%.2f")
+                        _, s_conf.dry = imgui.slider_float(T("env_dry_mult"), s_conf.dry, 0.0, 5.0, "%.2f")
+                        if imgui.button(T("btn_delete")) then EnvConfig.stage_settings[EnvConfig.current_stage_id] = nil end
+                    end
+                else
+                    imgui.text(T("msg_wait_stage"))
+                end
+                imgui.tree_pop()
+            end
+
+            if imgui.tree_node(T("env_weather")) then
+                for _, w in ipairs(EnvConfig.weather) do
+                    if w.is_active then imgui.push_style_color(0, 0xFF00FF00) end
+                    local w_name = T(w.key or "w_unknown")
+                    if imgui.tree_node(w_name) then
+                        if w.is_active then imgui.pop_style_color() end
+                        imgui.text(w.is_active and T("env_weather_active") or T("env_weather_inactive"))
+                        _, w.wet = imgui.slider_float(T("env_wet_mult"), w.wet, 0.0, 10.0, "%.2f")
+                        _, w.dry = imgui.slider_float(T("env_dry_mult"), w.dry, 0.0, 10.0, "%.2f")
+                        imgui.tree_pop()
+                    else
+                        if w.is_active then imgui.pop_style_color() end
+                    end
+                end
+                imgui.tree_pop()
+            end
+            imgui.tree_pop()
+        end
+
+        imgui.separator()
+        _, enable_stamina_sweating = imgui.checkbox(T("enable_stamina"), enable_stamina_sweating)
+        _, enable_actionguide_sweating = imgui.checkbox(T("enable_action"), enable_actionguide_sweating)
+        _, enable_motiondata_sweating = imgui.checkbox(T("enable_motion"), enable_motiondata_sweating)
+
+        imgui.separator()
+        imgui.text(T("body_parts"))
+        _, enable_face_sweating = imgui.checkbox(T("face_chk"), enable_face_sweating)
+        _, MAX_FACE_SWEATING = imgui.slider_float("##MaxFace", MAX_FACE_SWEATING, 0, 2, "%.3f")
+        imgui.same_line()
+        imgui.text(T("limit_desc_face"))
+        local cmf, vmf = imgui.slider_float(T("val_min_face"), MIN_FACE_SWEATING, 0, 2, "%.3f"); if cmf then MIN_FACE_SWEATING = round3(vmf) end
+        
+        imgui.spacing()
+        _, enable_body_sweating = imgui.checkbox(T("body_chk"), enable_body_sweating)
+        _, MAX_BODY_SWEATING = imgui.slider_float("##MaxBody", MAX_BODY_SWEATING, 0, 2, "%.3f")
+        imgui.same_line()
+        imgui.text(T("limit_desc_body"))
+        local cmb, vmb = imgui.slider_float(T("val_min_body"), MIN_BODY_SWEATING, 0, 2, "%.3f"); if cmb then MIN_BODY_SWEATING = round3(vmb) end
+
+        imgui.separator()
+        imgui.text(T("roughness_settings"))
+        _, enable_roughness_control = imgui.checkbox(T("enable_roughness"), enable_roughness_control)
+        if enable_roughness_control then
+            local c8, v8 = imgui.slider_float(T("val_roughness_face"), face_roughness_value, 0.0, 1.0, "%.3f"); if c8 then face_roughness_value = round3(v8) end
+            local c9, v9 = imgui.slider_float(T("val_roughness_body"), body_roughness_value, 0.0, 1.0, "%.3f"); if c9 then body_roughness_value = round3(v9) end
+        end
+
+        imgui.separator()
+        imgui.text(T("save_load"))
+        if imgui.button(T("btn_save")) then saveSettings() end
+        imgui.same_line() 
+        if imgui.button(T("btn_load")) then loadSettings() end
+
+        imgui.tree_pop()
+    end
+end)
+
+loadSettings()
+ElapsedTime = 0
+
+re.on_frame(function()
+    ElapsedTime = ElapsedTime + Utils.GetElapsedTimeMs()
+    if mod_enabled then
+        if GetHunterData() then
+            -- [AUTO EQUIP CHECK]
+            if auto_equip_scan_enabled then
+                equip_check_timer = equip_check_timer + Utils.GetElapsedTimeMs()
+                if equip_check_timer >= EQUIP_CHECK_INTERVAL then
+                    local current_hash = GetCurrentMeshHash()
+                    if current_hash ~= last_mesh_hash then
+                        ScanAndCacheMaterials()
+                    end
+                    equip_check_timer = 0
+                end
+            end
+
+            UpdateEnvironmentState()
+
+            if enable_motiondata_sweating or enable_actionguide_sweating or (debug_enabled and is_history_expanded) then
+                GetPlayerMotionAndActionData()
+            end
+            
+            if debug_enabled and is_history_expanded then 
+                UpdateActionHistory() 
+            end
+            
+            if ElapsedTime >= (update_interval_seconds * 1000) then
+                updateSweating()
+                ApplyWetnessToPlayerCached()
+                ElapsedTime = 0
+            end
+        else
+            MaterialCache.IsValid = false
+        end
+    end
+end)

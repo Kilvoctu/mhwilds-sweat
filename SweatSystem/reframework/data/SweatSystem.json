@@ -1,0 +1,170 @@
+{
+    "CustomActionGuideTbl": null,
+    "CustomMotionTbl": [
+        [
+            0,
+            1,
+            73,
+            1,
+            "motion"
+        ],
+        [
+            0,
+            1,
+            521,
+            1,
+            "motion"
+        ],
+        [
+            0,
+            1,
+            523,
+            1,
+            "motion"
+        ],
+        [
+            0,
+            1,
+            135,
+            1,
+            "motion"
+        ],
+        [
+            0,
+            1,
+            69,
+            1,
+            "motion"
+        ],
+        [
+            0,
+            1,
+            331,
+            1,
+            "motion"
+        ],
+        [
+            0,
+            1,
+            172,
+            1,
+            "motion"
+        ],
+        [
+            0,
+            1,
+            97,
+            3.0,
+            "stamina"
+        ],
+        [
+            0,
+            1,
+            174,
+            3.0,
+            "stamina"
+        ]
+    ],
+    "EnvStageSettings": {
+        "0": {
+            "dry": 1.25,
+            "name": "Stage 0",
+            "wet": 1.25
+        },
+        "1": {
+            "dry": 1.15,
+            "name": "Stage 1",
+            "wet": 0.9
+        },
+        "10": {
+            "dry": 1.25,
+            "name": "Stage 10",
+            "wet": 0.5
+        },
+        "11": {
+            "dry": 1.2,
+            "name": "Stage 11",
+            "wet": 0.8
+        },
+        "12": {
+            "dry": 1.2,
+            "name": "Stage 12",
+            "wet": 1.0
+        },
+        "13": {
+            "dry": 1.0,
+            "name": "Stage 13",
+            "wet": 2.0
+        },
+        "14": {
+            "dry": 1.2,
+            "name": "Stage 14",
+            "wet": 1.0
+        },
+        "15": {
+            "dry": 1.25,
+            "name": "Stage 15",
+            "wet": 1.25
+        },
+        "2": {
+            "dry": 1.0,
+            "name": "Stage 2",
+            "wet": 2.0
+        },
+        "3": {
+            "dry": 1.25,
+            "name": "Stage 3",
+            "wet": 0.5
+        },
+        "4": {
+            "dry": 1.2,
+            "name": "Stage 4",
+            "wet": 0.8
+        },
+        "9": {
+            "dry": 1.2,
+            "name": "Stage 9",
+            "wet": 1.0
+        }
+    },
+    "EnvWeatherSettings": [
+        {
+            "dry": 1.5,
+            "wet": 2.0
+        },
+        {
+            "dry": 0.1,
+            "wet": 5.0
+        },
+        {
+            "dry": 3.0,
+            "wet": 0.5
+        },
+        {
+            "dry": 2.0,
+            "wet": 0.5
+        }
+    ],
+    "MAX_BODY_SWEATING": 2.0,
+    "MAX_FACE_SWEATING": 2.0,
+    "MIN_BODY_SWEATING": 0.0,
+    "MIN_FACE_SWEATING": 0.0,
+    "SWEATING_ACTIONGUIDE_INCREASE_RATE": 0.03,
+    "SWEATING_DECREASE_RATE": 0.025,
+    "SWEATING_ENV_PASSIVE_RATE": 0.01,
+    "SWEATING_INCREASE_RATE": 0.035,
+    "SWEATING_INCREASE_RATE_BATTLE": 0.03,
+    "SWEATING_MOTIONDATA_INCREASE_RATE": 0.04,
+    "body_roughness_value": 0.4,
+    "cur_lang_index": 1,
+    "debug_enabled": false,
+    "enable_actionguide_sweating": true,
+    "enable_body_sweating": true,
+    "enable_face_sweating": true,
+    "enable_motiondata_sweating": true,
+    "enable_roughness_control": true,
+    "enable_stamina_sweating": true,
+    "face_roughness_value": 0.4,
+    "mod_enabled": true,
+    "update_interval_seconds": 0.5
+}
