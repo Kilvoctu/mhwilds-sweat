@@ -413,6 +413,8 @@ local MaterialCache = {
 -- Lookup Tables
 local ActionGuideMap = {} 
 local MotionDataMap = {} 
+local MotionDryDataMap = {} 
+local MotionDryDataMap = {} 
 
 -- ==========================================
 -- Data Tables
@@ -421,20 +423,20 @@ local CustomMotionTbl = {}
 
 local DefaultMotionTbl = {
     -- Default system motion data (not saved to JSON)
-    {0, 1, 73, 1, "motion", ""}, {0, 1, 521, 1, "motion", ""}, {0, 1, 523, 1, "motion", ""},
-    {0, 1, 135, 1, "motion", ""}, {0, 1, 69, 1, "motion", ""}, {0, 1, 331, 1, "motion", ""},
-    {0, 1, 172, 1, "motion", ""}, {0, 1, 97, 1, "stamina", ""}, {0, 1, 174, 1, "stamina", ""},
+    {0, 1, 73, 1, "motion", "", 1}, {0, 1, 521, 1, "motion", "", 1}, {0, 1, 523, 1, "motion", "", 1},
+    {0, 1, 135, 1, "motion", "", 1}, {0, 1, 69, 1, "motion", "", 1}, {0, 1, 331, 1, "motion", "", 1},
+    {0, 1, 172, 1, "motion", "", 1}, {0, 1, 97, 1, "stamina", "", 1}, {0, 1, 174, 1, "stamina", "", 1},
     -- Additional default motions
-    {0, 1, 2, 1}, {0, 1, 4, 1}, {0, 1, 11, 1}, {0, 1, 36, 1}, {0, 1, 40, 1}, 
-    {0, 1, 46, 1}, {0, 1, 49, 1}, {0, 1, 50, 1}, {0, 1, 53, 1}, 
-    {0, 1, 62, 1}, {0, 1, 63, 1}, {0, 1, 64, 1}, {0, 1, 65, 1}, 
-    {0, 1, 66, 1}, {0, 1, 67, 1}, {0, 1, 68, 1}, {0, 1, 90, 1}, {0, 1, 94, 1}, 
-    {0, 1, 129, 1}, {0, 1, 133, 1}, {0, 1, 251, 1}, {0, 3, 93, 1}, {0, 3, 112, 1},
-    {0, 1, 32, 2}, {0, 1, 37, 2}, {0, 1, 47, 2}, {0, 1, 100, 2}, {0, 1, 101, 2}, 
-    {0, 1, 103, 2}, {0, 1, 107, 2}, {0, 1, 112, 2}, {0, 1, 113, 2}, {0, 1, 114, 2}, 
-    {0, 1, 115, 2}, {0, 1, 116, 2}, {0, 1, 117, 2}, {0, 1, 240, 2}, {0, 1, 253, 2}, 
-    {0, 1, 330, 2}, {0, 1, 350, 2}, {0, 1, 351, 2}, {0, 1, 352, 2}, {0, 1, 353, 2}, 
-    {0, 1, 354, 2}
+    {0, 1, 2, 1, "motion", "", 1}, {0, 1, 4, 1, "motion", "", 1}, {0, 1, 11, 1, "motion", "", 1}, {0, 1, 36, 1, "motion", "", 1}, {0, 1, 40, 1, "motion", "", 1}, 
+    {0, 1, 46, 1, "motion", "", 1}, {0, 1, 49, 1, "motion", "", 1}, {0, 1, 50, 1, "motion", "", 1}, {0, 1, 53, 1, "motion", "", 1}, 
+    {0, 1, 62, 1, "motion", "", 1}, {0, 1, 63, 1, "motion", "", 1}, {0, 1, 64, 1, "motion", "", 1}, {0, 1, 65, 1, "motion", "", 1}, 
+    {0, 1, 66, 1, "motion", "", 1}, {0, 1, 67, 1, "motion", "", 1}, {0, 1, 68, 1, "motion", "", 1}, {0, 1, 90, 1, "motion", "", 1}, {0, 1, 94, 1, "motion", "", 1}, 
+    {0, 1, 129, 1, "motion", "", 1}, {0, 1, 133, 1, "motion", "", 1}, {0, 1, 251, 1, "motion", "", 1}, {0, 3, 93, 1, "motion", "", 1}, {0, 3, 112, 1, "motion", "", 1},
+    {0, 1, 32, 2, "motion", "", 1}, {0, 1, 37, 2, "motion", "", 1}, {0, 1, 47, 2, "motion", "", 1}, {0, 1, 100, 2, "motion", "", 1}, {0, 1, 101, 2, "motion", "", 1}, 
+    {0, 1, 103, 2, "motion", "", 1}, {0, 1, 107, 2, "motion", "", 1}, {0, 1, 112, 2, "motion", "", 1}, {0, 1, 113, 2, "motion", "", 1}, {0, 1, 114, 2, "motion", "", 1}, 
+    {0, 1, 115, 2, "motion", "", 1}, {0, 1, 116, 2, "motion", "", 1}, {0, 1, 117, 2, "motion", "", 1}, {0, 1, 240, 2, "motion", "", 1}, {0, 1, 253, 2, "motion", "", 1}, 
+    {0, 1, 330, 2, "motion", "", 1}, {0, 1, 350, 2, "motion", "", 1}, {0, 1, 351, 2, "motion", "", 1}, {0, 1, 352, 2, "motion", "", 1}, {0, 1, 353, 2, "motion", "", 1}, 
+    {0, 1, 354, 2, "motion", "", 1}
 }
 
 local CustomActionGuideTbl = {}
@@ -562,8 +564,15 @@ local DefaultActionGuideTbl = {
 local function RebuildLookupTables()
     ActionGuideMap = {}
     MotionDataMap = {}
+    MotionDryDataMap = {}
     local function addToGuideMap(tbl) for _, v in ipairs(tbl) do ActionGuideMap[v[1]] = v[3] or 1 end end
-    local function addToMotionMap(tbl) for _, v in ipairs(tbl) do MotionDataMap[tostring(v[1]).."_"..tostring(v[2]).."_"..tostring(v[3])] = v[4] or 1 end end
+    local function addToMotionMap(tbl) 
+        for _, v in ipairs(tbl) do 
+            local key = tostring(v[1]).."_"..tostring(v[2]).."_"..tostring(v[3])
+            MotionDataMap[key] = v[4] or 1
+            MotionDryDataMap[key] = v[7] or 1
+        end 
+    end
     addToGuideMap(DefaultActionGuideTbl)
     addToGuideMap(CustomActionGuideTbl)
     addToMotionMap(DefaultMotionTbl)
@@ -607,7 +616,8 @@ local function saveSettings()
             Bank = entry[1],
             Series = entry[2],
             Motion = entry[3],
-            Multiplier = entry[4],
+            WetMultiplier = entry[4],
+            DryMultiplier = entry[7] or 1,
             Category = entry[5],
             Name = entry[6]
         })
@@ -690,23 +700,24 @@ local function loadSettings()
     if Sweat.CustomMotionTbl then 
         CustomMotionTbl = {}
         for _, entry in ipairs(Sweat.CustomMotionTbl) do
-            local bank, series, motion, mult, cat, name
+            local bank, series, motion, mult, dry_mult, cat, name
             
             -- Check if entry uses old array format or new object format
             if entry[1] ~= nil then
-                -- Old array format: {bank, series, motion, multiplier, category, name}
+                -- Old array format: {bank, series, motion, multiplier, category, name, dry_multiplier}
                 bank = entry[1]
                 series = entry[2]
                 motion = entry[3]
                 mult = entry[4]
                 cat = entry[5]
                 name = entry[6]
+                dry_mult = entry[7]
             else
-                -- New object format: {Bank=, Series=, Motion=, Multiplier=, Category=, Name=}
                 bank = entry.Bank
                 series = entry.Series
                 motion = entry.Motion
-                mult = entry.Multiplier
+                mult = entry.WetMultiplier or entry.Multiplier
+                dry_mult = entry.DryMultiplier
                 cat = entry.Category
                 name = entry.Name
             end
@@ -716,9 +727,10 @@ local function loadSettings()
                     bank,
                     series,
                     motion,
-                    mult or 1,                      -- multiplier (default 1 if missing)
+                    mult or 1,                      -- wet multiplier (default 1 if missing)
                     cat or "motion",                -- category (default "motion" if missing)
-                    name or ""                      -- name (default "" if missing)
+                    name or "",                     -- name (default "" if missing)
+                    dry_mult or 1                   -- dry multiplier (default 1 if missing)
                 })
             end
         end
@@ -1093,7 +1105,13 @@ local function updateSweating()
 
     ::skip_increases::
     -- Decreases always apply (regardless of motion multiplier)
-    local dec_val = SWEATING_DECREASE_RATE * final_dry_mult * time_multiplier
+    -- Get motion-specific dry multiplier if motion data sweating is enabled
+    local motion_dry_mult = 1.0
+    if enable_motiondata_sweating then
+        motion_dry_mult = MotionDryDataMap[motion_key] or 1.0
+    end
+    
+    local dec_val = SWEATING_DECREASE_RATE * final_dry_mult * time_multiplier * motion_dry_mult
     face_sweating_value = face_sweating_value - dec_val
     body_sweating_value = body_sweating_value - dec_val
 
@@ -1339,7 +1357,7 @@ re.on_draw_ui(function()
                         imgui.text(string_format("Motion: B:%d S:%d M:%d", action.bank, action.sub, action.motion))
                         if imgui.button(T("add_to_motion")) then
                             if not IsInCustomMotion(action.bank, action.sub, action.motion) then
-                                table_insert(CustomMotionTbl, {action.bank, action.sub, action.motion, 1, "motion"})
+                                table_insert(CustomMotionTbl, {action.bank, action.sub, action.motion, 1, "motion", "", 1})
                                 notification_msg = T("added_msg"); notification_timer = 120; saveSettings()
                             else notification_msg = T("exists_msg"); notification_timer = 120 end
                         end
@@ -1394,8 +1412,11 @@ re.on_draw_ui(function()
                         
                         imgui.text(string_format("%s B:%d S:%d M:%d", type_str, v[1], v[2], v[3]))
                         
-                        local c_mult, v_mult = imgui.slider_float("Multiplier##cm_mult"..i, v[4], 0.0, 3.0, "%.2f")
+                        local c_mult, v_mult = imgui.slider_float("Wet Multi##cm_mult"..i, v[4], 0.0, 3.0, "%.2f")
                         if c_mult then v[4] = round2(v_mult); saveSettings() end
+						
+                        local c_dry, v_dry = imgui.slider_float("Dry Multi##cm_dry"..i, v[7] or 1.0, 0.0, 3.0, "%.2f")
+                        if c_dry then v[7] = round2(v_dry); saveSettings() end
                         
                         local c_alias, v_alias = imgui.input_text("Alias##cm_alias"..i, alias_edit_buffers[i])
                         if c_alias then alias_edit_buffers[i] = v_alias end
