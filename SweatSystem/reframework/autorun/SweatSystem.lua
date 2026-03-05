@@ -193,6 +193,10 @@ local last_captured_guide_id = -1
 local notification_timer = 0
 local notification_msg = ""
 
+-- [UI STATE VARIABLES]
+local expanded_custom_motions = {}
+local alias_edit_buffers = {}
+
 -- [AUTO EQUIP CHECK VARIABLES]
 local auto_equip_scan_enabled = true -- NEW TOGGLE
 local last_mesh_hash = ""
@@ -413,19 +417,14 @@ local MotionDataMap = {}
 -- ==========================================
 -- Data Tables
 -- ==========================================
-local CustomMotionTbl = {
-    {0, 1, 73, 1, "motion"},
-    {0, 1, 521, 1, "motion"},
-    {0, 1, 523, 1, "motion"},
-    {0, 1, 135, 1, "motion"},
-    {0, 1, 69, 1, "motion"},
-    {0, 1, 331, 1, "motion"},
-    {0, 1, 172, 1, "motion"},
-    {0, 1, 97, 3.0, "stamina"},
-    {0, 1, 174, 3.0, "stamina"}
-}
+local CustomMotionTbl = {}
 
-local DefaultMotionTbl = { 
+local DefaultMotionTbl = {
+    -- Default system motion data (not saved to JSON)
+    {0, 1, 73, 1, "motion", ""}, {0, 1, 521, 1, "motion", ""}, {0, 1, 523, 1, "motion", ""},
+    {0, 1, 135, 1, "motion", ""}, {0, 1, 69, 1, "motion", ""}, {0, 1, 331, 1, "motion", ""},
+    {0, 1, 172, 1, "motion", ""}, {0, 1, 97, 1, "stamina", ""}, {0, 1, 174, 1, "stamina", ""},
+    -- Additional default motions
     {0, 1, 2, 1}, {0, 1, 4, 1}, {0, 1, 11, 1}, {0, 1, 36, 1}, {0, 1, 40, 1}, 
     {0, 1, 46, 1}, {0, 1, 49, 1}, {0, 1, 50, 1}, {0, 1, 53, 1}, 
     {0, 1, 62, 1}, {0, 1, 63, 1}, {0, 1, 64, 1}, {0, 1, 65, 1}, 
@@ -600,7 +599,20 @@ local function saveSettings()
     Sweat.enable_roughness_control = enable_roughness_control
     Sweat.face_roughness_value = round3(face_roughness_value)
     Sweat.body_roughness_value = round3(body_roughness_value)
-    Sweat.CustomMotionTbl = CustomMotionTbl
+    
+    -- Convert CustomMotionTbl to named-field format for saving
+    local saved_motions = {}
+    for _, entry in ipairs(CustomMotionTbl) do
+        table_insert(saved_motions, {
+            Bank = entry[1],
+            Series = entry[2],
+            Motion = entry[3],
+            Multiplier = entry[4],
+            Category = entry[5],
+            Name = entry[6]
+        })
+    end
+    Sweat.CustomMotionTbl = saved_motions
     Sweat.CustomActionGuideTbl = CustomActionGuideTbl
     
     local saved_stages = {}
@@ -674,8 +686,55 @@ local function loadSettings()
     if Sweat.face_roughness_value then face_roughness_value = round3(Sweat.face_roughness_value) end
     if Sweat.body_roughness_value then body_roughness_value = round3(Sweat.body_roughness_value) end
     
-    if Sweat.CustomMotionTbl then CustomMotionTbl = Sweat.CustomMotionTbl end
-    if Sweat.CustomActionGuideTbl then CustomActionGuideTbl = Sweat.CustomActionGuideTbl end
+    -- Load CustomMotionTbl with validation and reconstruction (handles both old array and new object formats)
+    if Sweat.CustomMotionTbl then 
+        CustomMotionTbl = {}
+        for _, entry in ipairs(Sweat.CustomMotionTbl) do
+            local bank, series, motion, mult, cat, name
+            
+            -- Check if entry uses old array format or new object format
+            if entry[1] ~= nil then
+                -- Old array format: {bank, series, motion, multiplier, category, name}
+                bank = entry[1]
+                series = entry[2]
+                motion = entry[3]
+                mult = entry[4]
+                cat = entry[5]
+                name = entry[6]
+            else
+                -- New object format: {Bank=, Series=, Motion=, Multiplier=, Category=, Name=}
+                bank = entry.Bank
+                series = entry.Series
+                motion = entry.Motion
+                mult = entry.Multiplier
+                cat = entry.Category
+                name = entry.Name
+            end
+            
+            if bank and series and motion then
+                table_insert(CustomMotionTbl, {
+                    bank,
+                    series,
+                    motion,
+                    mult or 1,                      -- multiplier (default 1 if missing)
+                    cat or "motion",                -- category (default "motion" if missing)
+                    name or ""                      -- name (default "" if missing)
+                })
+            end
+        end
+        -- Clear edit buffers to reinitialize on next frame
+        alias_edit_buffers = {}
+    end
+    
+    -- Load CustomActionGuideTbl with validation
+    if Sweat.CustomActionGuideTbl then 
+        CustomActionGuideTbl = {}
+        for _, entry in ipairs(Sweat.CustomActionGuideTbl) do
+            if entry and entry[1] and entry[2] then
+                table_insert(CustomActionGuideTbl, entry)
+            end
+        end
+    end
     
     if Sweat.EnvStageSettings then 
         EnvConfig.stage_settings = {}
@@ -972,8 +1031,25 @@ local function updateSweating()
     local final_wet_mult = EnvConfig.total_wet_mult
     local final_dry_mult = EnvConfig.total_dry_mult
 
+    -- Get current motion and determine global sweat multiplier
+    local motion_id = _M.HunterData.MotionData.MotionID or 0
+    local sub_action_motion_id = _M.HunterData.SubActionData.MotionID or 0
+    local sub_action_motion_bank_id = _M.HunterData.SubActionData.MotionBankID or 0
+    local motion_key = tostring(sub_action_motion_bank_id) .. "_" .. tostring(sub_action_motion_id) .. "_" .. tostring(motion_id)
+    
+    -- Get multiplier from tracked motions (only if motion data sweating is enabled)
+    local motion_sweat_mult = 1.0
+    if enable_motiondata_sweating then
+        motion_sweat_mult = MotionDataMap[motion_key] or 1.0
+    end
+    
+    -- If motion has multiplier 0, skip all sweat increases (only decreases apply)
+    if motion_sweat_mult == 0 then
+        goto skip_increases
+    end
+
     if enable_stamina_sweating and current_stamina < last_stamina_value then
-        local val = SWEATING_INCREASE_RATE * final_wet_mult * time_multiplier
+        local val = SWEATING_INCREASE_RATE * final_wet_mult * time_multiplier * motion_sweat_mult
         face_sweating_value = face_sweating_value + val
         body_sweating_value = body_sweating_value + val
     end
@@ -985,7 +1061,7 @@ local function updateSweating()
         local key = tostring(sub_action_motion_bank_id) .. "_" .. tostring(sub_action_motion_id) .. "_" .. tostring(motion_id)
         local mult = MotionDataMap[key]
         if mult then
-            local val = (SWEATING_MOTIONDATA_INCREASE_RATE * mult) * final_wet_mult * time_multiplier
+            local val = (SWEATING_MOTIONDATA_INCREASE_RATE * mult) * final_wet_mult * time_multiplier * motion_sweat_mult
             face_sweating_value = face_sweating_value + val
             body_sweating_value = body_sweating_value + val
         end
@@ -996,7 +1072,7 @@ local function updateSweating()
         if action_guide_id then
             local mult = ActionGuideMap[action_guide_id]
             if mult then
-                local val = (SWEATING_ACTIONGUIDE_INCREASE_RATE * mult) * final_wet_mult * time_multiplier
+                local val = (SWEATING_ACTIONGUIDE_INCREASE_RATE * mult) * final_wet_mult * time_multiplier * motion_sweat_mult
                 face_sweating_value = face_sweating_value + val
                 body_sweating_value = body_sweating_value + val
             end
@@ -1004,17 +1080,19 @@ local function updateSweating()
     end
 
     if _M.HunterData.IsInBattle then
-        local val = SWEATING_INCREASE_RATE_BATTLE * final_wet_mult * time_multiplier
+        local val = SWEATING_INCREASE_RATE_BATTLE * final_wet_mult * time_multiplier * motion_sweat_mult
         face_sweating_value = face_sweating_value + val
         body_sweating_value = body_sweating_value + val
     end
 
     if final_wet_mult > 1.0 then
-        local passive_env_increase = SWEATING_ENV_PASSIVE_RATE * (final_wet_mult - 1.0) * time_multiplier
+        local passive_env_increase = SWEATING_ENV_PASSIVE_RATE * (final_wet_mult - 1.0) * time_multiplier * motion_sweat_mult
         face_sweating_value = face_sweating_value + passive_env_increase
         body_sweating_value = body_sweating_value + passive_env_increase
     end
 
+    ::skip_increases::
+    -- Decreases always apply (regardless of motion multiplier)
     local dec_val = SWEATING_DECREASE_RATE * final_dry_mult * time_multiplier
     face_sweating_value = face_sweating_value - dec_val
     body_sweating_value = body_sweating_value - dec_val
@@ -1296,10 +1374,42 @@ re.on_draw_ui(function()
                 for i, v in ipairs(CustomMotionTbl) do
                     imgui.push_id("cm"..i)
                     local type_str = (v[5] == "stamina") and T("type_stamina") or T("type_motion")
-                    imgui.text(string_format("%s B:%d S:%d M:%d", type_str, v[1], v[2], v[3]))
-                    imgui.same_line()
-                    if imgui.button(T("btn_delete")) then table_remove(CustomMotionTbl, i); saveSettings() end
+                    local display_name = (v[6] and v[6] ~= "") and v[6] or string_format("Motion_%d", v[3])
+                    
+                    -- Initialize edit buffer if not present
+                    if alias_edit_buffers[i] == nil then
+                        alias_edit_buffers[i] = v[6] or ""
+                    end
+                    
+                    if imgui.tree_node(display_name.."##cm"..i) then
+                        imgui.same_line()
+                        if imgui.button(T("btn_delete").."##cm_del"..i) then 
+                            table_remove(CustomMotionTbl, i)
+                            alias_edit_buffers[i] = nil
+                            saveSettings()
+                            imgui.tree_pop()
+                            imgui.pop_id()
+                            goto continue_custom_motion
+                        end
+                        
+                        imgui.text(string_format("%s B:%d S:%d M:%d", type_str, v[1], v[2], v[3]))
+                        
+                        local c_mult, v_mult = imgui.slider_float("Multiplier##cm_mult"..i, v[4], 0.0, 3.0, "%.2f")
+                        if c_mult then v[4] = round2(v_mult); saveSettings() end
+                        
+                        local c_alias, v_alias = imgui.input_text("Alias##cm_alias"..i, alias_edit_buffers[i])
+                        if c_alias then alias_edit_buffers[i] = v_alias end
+                        
+                        imgui.same_line()
+                        if imgui.button("Rename##cm_rename"..i) then 
+                            v[6] = alias_edit_buffers[i]
+                            saveSettings()
+                        end
+                        
+                        imgui.tree_pop()
+                    end
                     imgui.pop_id()
+                    ::continue_custom_motion::
                 end
             end
             if not has_any then imgui.text_colored(T("no_custom_actions"), 0xFF888888) end
