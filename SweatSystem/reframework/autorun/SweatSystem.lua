@@ -36,7 +36,7 @@ local cur_lang_index = 1 -- English(1) Chinese(2)
 local Lang = {
     en = {
         settings = "Sweat System", debug_mode = "Debug Mode (Show Values)", enable_mod = "Enable Mod", 
-        global_params = "Global Growth Parameters", env_params = "Environment & Weather Settings",
+        global_params = "Global Growth Parameters", env_params = "Environment & Weather Settings", loc_time = "Location & Time", opt_pause_weather_safe = "Pause Weather in Safety Area", opt_pause_weather_camp = "Pause Weather in Camp", opt_force_wet_in_water = "In Water: Force Wetness to Max", opt_freeze_blackout = "Freeze Updates During Blackout", opt_freeze_loading = "Freeze Updates During Loading/Stage Change", lbl_time_zone = "Time Zone: ", btn_create_time_conf = "Create Time-of-Day Config for Current Stage", btn_fill_missing_time_conf = "Fill Missing Time-of-Day Slots", btn_create_all_time_conf = "Create Time-of-Day Configs for All Stages", time_conf_for_stage = "Time-of-Day Multipliers (Current Stage)",
         env_cur_stage = "Current Stage Info", env_weather = "Weather Multipliers", env_rename = "Rename Stage",
         env_create = "Create Config for Current Stage", env_wet_mult = "Env Wet Multiplier", env_dry_mult = "Env Dry Multiplier",
         env_weather_active = "[ACTIVE]", env_weather_inactive = "Inactive",
@@ -69,34 +69,42 @@ local Lang = {
         w_sandstorm = "Sand Storm",
         w_blizzard = "Blizzard",
         w_unknown = "Unknown Weather",
+        opt_water_force_wetness = "In Water: Forced Wetness Value",
+        opt_water_wet_cap = "In Water: Wetness Cap (Can exceed normal max)",
+        env_wet_mult_desc = "Wet Mult affects wetness gain in this area. Higher = sweat builds faster.",
+        env_dry_mult_desc = "Dry Mult affects drying speed in this area. Higher = dries faster.",
+        env_wet_mult_weather_desc = "Wet Mult affects wetness gain when this weather is active.",
+        env_dry_mult_weather_desc = "Dry Mult affects drying speed when this weather is active.",
+        time_wet_mult_desc = "Wet Mult: controls wetness gain (sweat/soak). 1.00 = default.",
+        time_dry_mult_desc = "Dry Mult: controls drying speed (evaporation). 1.00 = default.",
         rate_env_passive = "Base Rate (Passive Env Growth)",
         desc_env_passive = "Takes effect when Env Wet Multiplier > 1.0 (e.g. Rain/Heat)",
         auto_scan_info = "Auto-Scan Status: ",
         auto_scan_chk = "Auto-Detect Equipment Changes"
     },
     cn = {
-        settings = "汗湿系统", debug_mode = "调试模式 (显示数值)", enable_mod = "启用 Mod", 
-        global_params = "全局增长参数", env_params = "环境与天气系统 (倍率与被动增长)",
+        settings = "汗湿系统", debug_mode = "调试模式 (显示数值)", enable_mod = "启用模组", 
+        global_params = "全局增长参数", env_params = "环境与天气设置", loc_time = "位置与时段", opt_pause_weather_safe = "安全区域：屏蔽天气影响", opt_pause_weather_camp = "营地：屏蔽天气影响", opt_force_wet_in_water = "水中：汗湿直接拉满", opt_freeze_blackout = "黑屏/过场：冻结更新", opt_freeze_loading = "加载/切图：冻结更新", lbl_time_zone = "时段：", btn_create_time_conf = "为当前场景创建时段配置", btn_fill_missing_time_conf = "补全缺失的时段项", btn_create_all_time_conf = "一键为所有场景生成时段预设", time_conf_for_stage = "时段倍率（仅当前场景）",
         env_cur_stage = "当前场景信息", env_weather = "天气倍率设置", env_rename = "重命名场景",
         env_create = "为当前场景创建配置", env_wet_mult = "环境湿润倍率", env_dry_mult = "环境风干倍率",
         env_weather_active = "【当前生效中】", env_weather_inactive = "未激活",
         body_parts = "部位上下限设置 (设为0即关闭该部位)", roughness_settings = "皮肤粗糙度设置 (光泽度)", 
-        custom_actions = "自定义动作管理 (已添加)", save_load = "配置文件管理", 
+        custom_actions = "自定义动作管理（已添加）", save_load = "配置文件管理", 
         debug_values = "当前各部位汗湿数值:", debug_motion = "当前实时动作参数:", debug_lock = "【调试】强制锁定汗湿值", 
         debug_lock_val = "锁定数值 (受部位上限限制)", custom_guide_list = "自定义攻击招式列表", custom_motion_list = "自定义动画数据列表", 
-        btn_delete = "删除", type_stamina = "【类型: 高强度体力消耗】", type_motion = "【类型: 普通动作/动画】", type_guide = "【类型: 武器攻击招式】", 
+        btn_delete = "删除", type_stamina = "【体力消耗类】", type_motion = "【动作动画类】", type_guide = "【攻击招式类】", 
         no_custom_actions = "暂无自定义动作。请在调试模式的历史记录中点击添加。", 
         rate_stamina = "增长率 (耐力消耗时)", rate_motion = "增长率 (匹配特定动画时)", rate_action = "增长率 (使用武器招式时)", 
         rate_decrease = "消退率 (随时间自然风干)", rate_battle = "增长率 (处于战斗状态时额外增加)", 
-        refresh_interval = "画面刷新间隔 (秒)", refresh_desc = "已应用优化算法：哈希表查找 + 差值更新检测。", 
+        refresh_interval = "画面刷新间隔（秒）", refresh_desc = "数值越低更新越流畅。已应用优化：哈希表查找与差值检测。", 
         enable_stamina = "启用耐力关联计算", enable_action = "启用攻击招式关联计算", enable_motion = "启用基础动画关联计算", 
-        face_chk = "启用 脸部 汗湿", body_chk = "启用 身体/腿部 汗湿", enable_roughness = "启用粗糙度控制 (覆盖默认材质)", 
+        face_chk = "启用脸部汗湿", body_chk = "启用身体/腿部汗湿", enable_roughness = "启用粗糙度控制 (覆盖默认材质)", 
         val_roughness_face = "脸部粗糙度 (越低越油亮)", val_roughness_body = "身体粗糙度 (越低越油亮)", 
         limit_desc_face = "脸部汗湿上限", limit_desc_body = "身体汗湿上限", 
-        add_to_stamina = "添加为【耐力消耗类】", add_to_motion = "添加为【动作数据类】", add_to_guide = "添加为【攻击招式类】", 
+        add_to_stamina = "添加为【体力消耗类】", add_to_motion = "添加为【动作动画类】", add_to_guide = "添加为【攻击招式类】", 
         added_msg = "已成功添加到自定义列表!", exists_msg = "该动作已在列表中", 
-        hist_title = "最近 10 个动作历史记录 (点击展开开始记录)", hist_clear = "清空历史", 
-        btn_save = "保存当前配置", btn_load = "读取存档配置", btn_recan = "强制重新扫描角色模型",
+        hist_title = "动作历史（展开以开始记录）", hist_clear = "清空历史", 
+        btn_save = "保存配置", btn_load = "加载配置", btn_recan = "强制重新扫描角色模型",
         val_min_face = "脸部汗湿下限", val_min_body = "身体汗湿下限",
         debug_val_fmt = "脸部: %.2f | 身体: %.2f",
         debug_env_wet = "环境综合湿润倍率: %.2fx",
@@ -104,13 +112,21 @@ local Lang = {
         lbl_cur_stage_id = "当前场景 ID: ",
         status_unconfigured = "未配置",
         msg_wait_stage = "等待场景加载...",
-        w_heatwave = "热浪 (Heat Wave)",
-        w_heavyrain = "暴雨 (Heavy Rain)",
-        w_sandstorm = "沙尘暴 (Sand Storm)",
-        w_blizzard = "暴风雪 (Blizzard)",
+        w_heatwave = "热浪",
+        w_heavyrain = "暴雨",
+        w_sandstorm = "沙尘暴",
+        w_blizzard = "暴风雪",
         w_unknown = "未知天气",
-        rate_env_passive = "基础增长率 (环境/天气被动)",
-        desc_env_passive = "当环境倍率 > 1.0 时生效 (如暴雨/热浪会自动增加)",
+        opt_water_force_wetness = "水下：拉满湿度数值",
+        opt_water_wet_cap = "水下：湿度上限（可超过普通上限）",
+        env_wet_mult_desc = "湿润倍率影响该区域的汗湿增长速度，数值越高汗湿积累越快。",
+        env_dry_mult_desc = "风干倍率影响该区域的干燥速度，数值越高干燥越快。",
+        env_wet_mult_weather_desc = "该天气生效时，湿润倍率会影响汗湿增长速度。",
+        env_dry_mult_weather_desc = "该天气生效时，风干倍率会影响干燥速度。",
+        time_wet_mult_desc = "湿润倍率：控制汗湿/浸湿的增长速度，1.00为默认值。",
+        time_dry_mult_desc = "风干倍率：控制干燥/蒸发速度，1.00为默认值。",
+        rate_env_passive = "基础增长率（环境被动增长）",
+        desc_env_passive = "当环境湿润倍率>1.0时生效（如雨天/热浪天气）",
         auto_scan_info = "自动检测状态: ",
         auto_scan_chk = "自动检测装备变更"
     }
@@ -191,21 +207,43 @@ local EnvConfig = {
     current_stage_name_display = "", 
     total_wet_mult = 1.0,
     total_dry_mult = 1.0,
+env_wet_mult = 1.0,     -- stage * time-of-day
+env_dry_mult = 1.0,     -- stage * time-of-day
+weather_wet_mult = 1.0, -- active weather product
+weather_dry_mult = 1.0, -- active weather product
+
+current_time_zone_index = -1,
+current_time_zone_name_display = "",
 
     -- [USER DATA: STAGE DEFAULTS]
     stage_settings = {
-        [0] = { name = "Stage 0", wet = 1.25, dry = 1.25 },
-        [1] = { name = "Stage 1", wet = 0.90, dry = 1.15 },
-        [2] = { name = "Stage 2", wet = 2.00, dry = 1.00 },
-        [3] = { name = "Stage 3", wet = 0.50, dry = 1.25 },
-        [4] = { name = "Stage 4", wet = 0.80, dry = 1.20 },
-        [9] = { name = "Stage 9", wet = 1.00, dry = 1.20 },
+        [0] = { name = "Windward Plains / 天堑沙原", wet = 1.30, dry = 1.35 },
+        [1] = { name = "Scarlet Forest / 绯红森林", wet = 1.60, dry = 0.90 },
+        [2] = { name = "Oilwell Basin / 涌油谷", wet = 1.70, dry = 1.40 },
+        [3] = { name = "Iceshard Cliffs / 冰雾断崖", wet = 0.60, dry = 1.40 },
+        [4] = { name = "Ruins of Wyveria / 龙都遗迹", wet = 1.10, dry = 1.10 },
+        [9] = { name = "Dragon Valley Ruins / 龙谷遗址", wet = 1.00, dry = 1.05 },
         [10] = { name = "Stage 10", wet = 0.50, dry = 1.25 },
         [11] = { name = "Stage 11", wet = 0.80, dry = 1.20 },
-        [12] = { name = "Stage 12", wet = 1.00, dry = 1.20 },
+        [12] = { name = "Suja, Peaks of Accord / 交汇之峰·酥加", wet = 0.85, dry = 1.10 },
         [13] = { name = "Stage 13", wet = 2.00, dry = 1.00 },
-        [14] = { name = "Stage 14", wet = 1.00, dry = 1.20 },
+        [14] = { name = "Grand Hub / 大集会所", wet = 0.95, dry = 1.05 },
         [15] = { name = "Stage 15", wet = 1.25, dry = 1.25 },
+-- [USER DATA: TIME-OF-DAY DEFAULTS]
+-- Index mapping observed in ace.GlobalTimeZoneManager:
+-- 0 = Camp Rest / Between Night & Day, 1 = Morning, 2 = Day, 3 = Evening, 4 = Night
+time_settings = {
+    -- Example: Windward Plains has larger day/night temperature swing.
+    -- You can tune these in the UI.
+    [0] = {
+        [0] = { name = "Rest",    wet = 0.90, dry = 0.95 },
+        [1] = { name = "Morning", wet = 1.00, dry = 1.05 },
+        [2] = { name = "Day",     wet = 1.15, dry = 1.10 },
+        [3] = { name = "Evening", wet = 1.00, dry = 1.05 },
+        [4] = { name = "Night",   wet = 0.85, dry = 1.00 },
+    },
+},
+
     },
 
     -- [USER DATA: WEATHER DEFAULTS]
@@ -217,6 +255,134 @@ local EnvConfig = {
     }
 }
 local env_manager_class = "app.EnvironmentManager"
+
+-- ==========================================
+-- Location & Time State (auto-detection)
+-- ==========================================
+local app_effect_manager_class = "app.AppEffectManager"
+local time_zone_manager_class = "ace.GlobalTimeZoneManager"
+
+local LocationState = {
+    in_safety_area = false,
+    in_camp = false,
+    in_water = false,
+    is_blackout = false,
+    is_change_stage_or_env = false,
+}
+
+local TimeZoneNameMap = {
+    [0] = "Rest",
+    [1] = "Morning",
+    [2] = "Day",
+    [3] = "Evening",
+    [4] = "Night",
+}
+
+-- ==========================================
+-- Default time-of-day climate presets per stage
+-- These values are baseline *suggestions* to reduce manual work.
+-- You can fine-tune them in the UI and save to JSON.
+-- wet: affects wetness gain (sweat/soak)
+-- dry: affects wetness loss (evaporation/drying)
+-- ==========================================
+local StageTimeDefaults = {
+    -- Windward Plains / 天堑沙原: hot day, cool night, strong evaporation.
+    [0]  = { [0]={w=0.95,d=1.00}, [1]={w=1.05,d=1.10}, [2]={w=1.25,d=1.30}, [3]={w=1.05,d=1.15}, [4]={w=0.85,d=0.95} },
+    -- Scarlet Forest / 绯红森林: humid, slower drying.
+    [1]  = { [0]={w=1.05,d=0.90}, [1]={w=1.10,d=0.90}, [2]={w=1.15,d=0.85}, [3]={w=1.10,d=0.90}, [4]={w=1.00,d=0.92} },
+    -- Oilwell Basin / 涌油谷: high heat and evaporation.
+    [2]  = { [0]={w=1.10,d=1.15}, [1]={w=1.20,d=1.25}, [2]={w=1.35,d=1.45}, [3]={w=1.20,d=1.30}, [4]={w=1.00,d=1.10} },
+    -- Iceshard Cliffs / 冰雾断崖: cold, less sweat; wind can dry.
+    [3]  = { [0]={w=0.75,d=1.10}, [1]={w=0.70,d=1.15}, [2]={w=0.65,d=1.20}, [3]={w=0.70,d=1.15}, [4]={w=0.80,d=1.05} },
+    -- Ruins of Wyveria / 龙都遗迹: mild swing.
+    [4]  = { [0]={w=0.95,d=1.00}, [1]={w=1.00,d=1.05}, [2]={w=1.05,d=1.05}, [3]={w=1.00,d=1.05}, [4]={w=0.95,d=1.00} },
+    -- Dragon Valley Ruins / 龙谷遗址: slightly dry.
+    [9]  = { [0]={w=0.95,d=1.05}, [1]={w=1.00,d=1.10}, [2]={w=1.05,d=1.15}, [3]={w=1.00,d=1.10}, [4]={w=0.95,d=1.05} },
+    -- Suja / 交汇之峰·酥加: hub-like, stable.
+    [12] = { [0]={w=0.95,d=1.00}, [1]={w=1.00,d=1.00}, [2]={w=1.00,d=1.00}, [3]={w=1.00,d=1.00}, [4]={w=0.95,d=1.00} },
+    -- Grand Hub / 大集会所: stable.
+    [14] = { [0]={w=0.95,d=1.00}, [1]={w=1.00,d=1.00}, [2]={w=1.00,d=1.00}, [3]={w=1.00,d=1.00}, [4]={w=0.95,d=1.00} },
+}
+
+local function GetStageTimeDefault(stage_id, tz_index)
+    local st = StageTimeDefaults[stage_id]
+    if not st then
+        return 1.0, 1.0
+    end
+    local slot = st[tz_index]
+    if not slot then
+        return 1.0, 1.0
+    end
+    return (slot.w or 1.0), (slot.d or 1.0)
+end
+
+
+-- ==========================================
+-- Time-of-day presets helpers
+-- ==========================================
+local function BuildDefaultTimeStageTemplate()
+    -- Create a neutral template; specific defaults are applied by EnsureTimeSettingsForStage(stage_id)
+    local out = {}
+    for i = 0, 4 do
+        out[i] = {
+            name = TimeZoneNameMap[i] or ("T" .. tostring(i)),
+            wet  = 1.0,
+            dry  = 1.0,
+        }
+    end
+    return out
+end
+
+local function EnsureTimeSettingsForStage(stage_id)
+    if not EnvConfig.time_settings then EnvConfig.time_settings = {} end
+    local stage_tbl = EnvConfig.time_settings[stage_id]
+    local created = false
+    if not stage_tbl then
+        stage_tbl = BuildDefaultTimeStageTemplate()
+        EnvConfig.time_settings[stage_id] = stage_tbl
+        created = true
+    end
+    -- Fill missing slots
+    for i = 0, 4 do
+        if created and stage_tbl[i] then
+            local dw, dd = GetStageTimeDefault(stage_id, i)
+            stage_tbl[i].wet = dw
+            stage_tbl[i].dry = dd
+        elseif not stage_tbl[i] then
+            local dw, dd = GetStageTimeDefault(stage_id, i)
+            stage_tbl[i] = { name = TimeZoneNameMap[i] or ("T" .. tostring(i)), wet = dw, dry = dd }
+        else
+            if stage_tbl[i].name == nil then stage_tbl[i].name = TimeZoneNameMap[i] or ("T" .. tostring(i)) end
+            if stage_tbl[i].wet  == nil then
+                local dw, _ = GetStageTimeDefault(stage_id, i)
+                stage_tbl[i].wet = dw
+            end
+            if stage_tbl[i].dry  == nil then
+                local _, dd = GetStageTimeDefault(stage_id, i)
+                stage_tbl[i].dry = dd
+            end
+        end
+    end
+end
+
+local function EnsureAllTimeSettings()
+    if not EnvConfig.stage_settings then return end
+    for stage_id, _ in pairs(EnvConfig.stage_settings) do
+        EnsureTimeSettingsForStage(stage_id)
+    end
+end
+
+
+-- [USER SETTINGS]
+local pause_weather_in_safety_area = true
+local pause_weather_in_camp = true
+local force_wet_in_water = true
+local freeze_updates_during_blackout = true
+local freeze_updates_during_change_stage = true
+local WATER_FORCE_WETNESS = 3.00
+local WATER_WETNESS_CAP   = 3.00
+local post_water_drying = false
+local was_in_water = false
 
 -- ==========================================
 -- Hunter Data
@@ -333,7 +499,7 @@ local DefaultActionGuideTbl = {
 {1565251968, "Blade Dance II"}, {72416008, "Blade Dance III"}, {-1698437888, "Demon Flurry I"},
 {1304483584, "Demon Flurry II"}, {1912740608, "Left Fade Slash"}, {-291922400, "Right Fade Slash"},
 -- Misc
-{1413, "Dismount Attack"}, {385008192, "Riding Attack"},
+{1413, "Dismount Attack"},
 -- Sword and Shield
 {-669292416, "Advancing Slash"}, {771635840, "Diagonal Rising Slash"}, {-468041344, "Spinning Reaper"},
 {-1520769024, "Lateral Slash"}, {-365669696, "Spinning Rising Slash"}, {937851328, "Chop"}, {1140208384, "Chop"},
@@ -366,6 +532,23 @@ local DefaultActionGuideTbl = {
 {-1457110272, "Focus Strike: Reverb"}, {-466143936, "Echo Bubble"}, {-1354698240, "Melody of Life"},
 {1368552832, "Hilt Stab"}, {-286523680, "Perform"}, {1994995200, "Performance Landing"},
 {1317018112, "Focus Strike: Reverb"}, {14805, "Charge"}, {-1113914624, "Offset Melody"}, {1763677568, "Jumping Smash"},
+-- Hammer
+{-222720992, "Overhead Smash II"}, {1449700864, "Upswing"}, {-2018062080, "Charge"}, {-536417184, "Charged Big Bang"},
+{976256064, "Big Bang I"}, {1811815168, "Big Bang II"}, {-2102200192, "Big Bang III"}, {-1712032768, "Big Bang IV"},
+{-232315824, "Big Bang Finisher"}, {-2070507264, "Spinning Bludgeon"}, {-914516160, "Spinning Follow-up"}, {86757720, "Overhead Smash I"},
+{-32021162, "Spinning Side Smash"}, {885262336, "Spinning Strong Upswing"}, {1152969344, "Charged Follow-up"}, {1902907008, "Charged Upswing"},
+{1534779136, "Charge"}, {-36407420, "Mighty Charge Upswing"}, {807319680, "Mighty Charge Slam"}, {-1057375552, "Charged Side Blow"},
+{-1790485120, "Focus Blow: Earthquake"}, {12800, "Follow-up Spinslam"}, {-1804069376, "Focus Blow: Earthquake"}, {-1737516032, "Charged Step"},
+{-2065308672, "Swing"}, {283916416, "Jumping Smash"},
+-- Insect Glaive
+{-116916480, "Rising Slash Combo"}, {-1983561600, "Reaping Slash"}, {2066406784, "Overhead Smash"}, {1401028864, "Leaping Slash"},
+{-1195963904, "Dodge Slash"}, {-448700960, "Sidestep Slash"}, {-2131028480, "Wide Sweep"}, {-1303595904, "Vault"},
+{-2129387136, "Jumping Advancing Slash"}, {239722048, "Jumping Slash"}, {816598592, "Kinsect Harvest Extract"},
+{-587319424, "Tornado Slash"}, {378074688, "Strong Rising Slash Combo"}, {-1722159104, "Strong Reaping Slash"},
+{45022504, "Strong Double Slash"}, {642398208, "Strong Wide Sweep"}, {-1429459328, "Strong Jumping Advancing Slash"},
+{-922212864, "Strong Descending Slash"}, {1656416768, "Strong Descending Thrust"}, {4192, "Vaulting Dance"},
+{1212529024, "Rising Spiral Slash"}, {569344320, "Kinsect: Mark Target"}, {632633472, "Midair Evade"},
+{341413600, "Jumping Advancing Slash"}, {810620608, "Focus Thrust: Leaping Strike"}, {2014867968, "Double Slash"},
 -- Lance
 {-572647232, "Mid Thrust I"}, {-61029700, "Mid Thrust II"}, {31930464, "Mid Thrust III"}, {-752102912, "Triple Thrust"},
 {-400225664, "High Thrust I"}, {-1128612864, "High Thrust II"}, {-1488459392, "High Thrust III"}, {24016, "Charge"},
@@ -436,6 +619,28 @@ local function saveSettings()
     end
     Sweat.EnvWeatherSettings = saved_weather
     
+local saved_time = {}
+for stage_id, stage_tbl in pairs(EnvConfig.time_settings) do
+    local s_key = tostring(stage_id)
+    saved_time[s_key] = {}
+    for t_idx, t_conf in pairs(stage_tbl) do
+        saved_time[s_key][tostring(t_idx)] = {
+            name = t_conf.name,
+            wet = round2(t_conf.wet or 1.0),
+            dry = round2(t_conf.dry or 1.0),
+        }
+    end
+end
+Sweat.EnvTimeSettings = saved_time
+
+Sweat.pause_weather_in_safety_area = pause_weather_in_safety_area
+Sweat.pause_weather_in_camp = pause_weather_in_camp
+Sweat.force_wet_in_water = force_wet_in_water
+Sweat.freeze_updates_during_blackout = freeze_updates_during_blackout
+Sweat.freeze_updates_during_change_stage = freeze_updates_during_change_stage
+Sweat.WATER_FORCE_WETNESS = round3(WATER_FORCE_WETNESS)
+Sweat.WATER_WETNESS_CAP   = round3(WATER_WETNESS_CAP)
+
     json.dump_file("SweatSystem.json", Sweat)
     RebuildLookupTables() 
 end
@@ -494,6 +699,38 @@ local function loadSettings()
             end
         end
     end
+    if Sweat.EnvTimeSettings then
+        EnvConfig.time_settings = {}
+        for sk, stage_tbl in pairs(Sweat.EnvTimeSettings) do
+            local sid = tonumber(sk)
+            if sid then
+                EnvConfig.time_settings[sid] = {}
+                for tk, tconf in pairs(stage_tbl) do
+                    local tid = tonumber(tk)
+                    if tid ~= nil then
+                        EnvConfig.time_settings[sid][tid] = {
+                            name = tconf.name,
+                            wet = tconf.wet,
+                            dry = tconf.dry
+                        }
+                    end
+                end
+            end
+        end
+    end
+
+        -- Auto-generate missing time-of-day presets for all known stages
+    EnsureAllTimeSettings()
+
+if Sweat.pause_weather_in_safety_area ~= nil then pause_weather_in_safety_area = Sweat.pause_weather_in_safety_area end
+    if Sweat.pause_weather_in_camp ~= nil then pause_weather_in_camp = Sweat.pause_weather_in_camp end
+    if Sweat.force_wet_in_water ~= nil then force_wet_in_water = Sweat.force_wet_in_water end
+    if Sweat.freeze_updates_during_blackout ~= nil then freeze_updates_during_blackout = Sweat.freeze_updates_during_blackout end
+    if Sweat.freeze_updates_during_change_stage ~= nil then freeze_updates_during_change_stage = Sweat.freeze_updates_during_change_stage end
+    if Sweat.WATER_FORCE_WETNESS then WATER_FORCE_WETNESS = round3(Sweat.WATER_FORCE_WETNESS) end
+    if Sweat.WATER_WETNESS_CAP   then WATER_WETNESS_CAP   = round3(Sweat.WATER_WETNESS_CAP) end
+
+
     RebuildLookupTables()
 end
 
@@ -530,26 +767,97 @@ end
 -- ==========================================
 -- ENVIRONMENT LOGIC
 -- ==========================================
-local function UpdateEnvironmentState()
+-- ==========================================
+-- Helpers: Read Location & Time state
+-- ==========================================
+local function UpdateLocationState()
+    local eff = sdk.get_managed_singleton(app_effect_manager_class)
+    if not eff then
+        LocationState.in_safety_area = false
+        LocationState.in_camp = false
+        LocationState.in_water = false
+        LocationState.is_blackout = false
+        LocationState.is_change_stage_or_env = false
+        return
+    end
+
+    -- All fields are optional (may change between builds). Read safely.
+    local v = eff:get_field("_IsInSafetyArea"); if v ~= nil then LocationState.in_safety_area = v end
+    v = eff:get_field("_InCamp"); if v ~= nil then LocationState.in_camp = v end
+    v = eff:get_field("_InWater"); if v ~= nil then LocationState.in_water = v end
+    v = eff:get_field("_IsBlackout"); if v ~= nil then LocationState.is_blackout = v end
+    v = eff:get_field("_IsChangeStageOrEnv"); if v ~= nil then LocationState.is_change_stage_or_env = v end
+end
+
+local function UpdateTimeZoneState()
+    local tz = sdk.get_managed_singleton(time_zone_manager_class)
+    if not tz then
+        EnvConfig.current_time_zone_index = -1
+        EnvConfig.current_time_zone_name_display = ""
+        return
+    end
+
+    local idx = tz:get_field("_CurrentTimeZoneIndex")
+    if idx == nil then
+        -- Fallback: some builds only expose _CurrentTimeZone (enum) and not the index.
+        local enum_obj = tz:get_field("_CurrentTimeZone")
+        if enum_obj ~= nil then
+            idx = tonumber(enum_obj)
+        end
+    end
+
+    if idx == nil then idx = -1 end
+    EnvConfig.current_time_zone_index = idx
+    EnvConfig.current_time_zone_name_display = TimeZoneNameMap[idx] or ("Unknown(" .. tostring(idx) .. ")")
+end
+
+function UpdateEnvironmentState()
     local env_man = sdk.get_managed_singleton(env_manager_class)
     if not env_man then return end
+
+    UpdateLocationState()
+    UpdateTimeZoneState()
 
     local stage_id = env_man:get_field("_CurrentStage")
     if stage_id then
         EnvConfig.current_stage_id = stage_id
     end
 
-    local wet = 1.0
-    local dry = 1.0
+    -- --------------------------
+    -- Stage (environment) multiplier
+    -- --------------------------
+    local env_wet = 1.0
+    local env_dry = 1.0
 
     local s_conf = EnvConfig.stage_settings[EnvConfig.current_stage_id]
     if s_conf then
-        wet = wet * s_conf.wet
-        dry = dry * s_conf.dry
+        env_wet = env_wet * s_conf.wet
+        env_dry = env_dry * s_conf.dry
         EnvConfig.current_stage_name_display = s_conf.name
     else
-        EnvConfig.current_stage_name_display = nil 
+        EnvConfig.current_stage_name_display = nil
     end
+
+    -- --------------------------
+    -- Time-of-day multiplier (optional, per stage)
+    -- --------------------------
+    local time_conf_stage = EnvConfig.time_settings[EnvConfig.current_stage_id]
+    if time_conf_stage then
+        local t_conf = time_conf_stage[EnvConfig.current_time_zone_index]
+        if t_conf then
+            env_wet = env_wet * (t_conf.wet or 1.0)
+            env_dry = env_dry * (t_conf.dry or 1.0)
+        end
+    end
+
+    EnvConfig.env_wet_mult = env_wet
+    EnvConfig.env_dry_mult = env_dry
+
+    -- --------------------------
+    -- Weather multiplier
+    -- --------------------------
+    local weather_wet = 1.0
+    local weather_dry = 1.0
 
     for _, w_conf in ipairs(EnvConfig.weather) do
         w_conf.is_active = false
@@ -558,14 +866,28 @@ local function UpdateEnvironmentState()
             local is_active = field_obj:call("get_IsActive")
             if is_active then
                 w_conf.is_active = is_active
-                wet = wet * w_conf.wet
-                dry = dry * w_conf.dry
+                weather_wet = weather_wet * w_conf.wet
+                weather_dry = weather_dry * w_conf.dry
             end
         end
     end
 
-    EnvConfig.total_wet_mult = wet
-    EnvConfig.total_dry_mult = dry
+    EnvConfig.weather_wet_mult = weather_wet
+    EnvConfig.weather_dry_mult = weather_dry
+
+    -- --------------------------
+    -- Final totals (weather can be paused in safety area / camp)
+    -- --------------------------
+    local final_weather_wet = weather_wet
+    local final_weather_dry = weather_dry
+
+    if (pause_weather_in_safety_area and LocationState.in_safety_area) or (pause_weather_in_camp and LocationState.in_camp) then
+        final_weather_wet = 1.0
+        final_weather_dry = 1.0
+    end
+
+    EnvConfig.total_wet_mult = env_wet * final_weather_wet
+    EnvConfig.total_dry_mult = env_dry * final_weather_dry
 end
 
 -- ==========================================
@@ -574,7 +896,79 @@ end
 local function updateSweating()
     local current_stamina = _M.HunterData.StaminaData or -1
     local time_multiplier = math_max(0.01, update_interval_seconds)
-    
+
+    -- Freeze during blackout / loading transitions to avoid sudden jumps
+    if (freeze_updates_during_blackout and LocationState.is_blackout)
+        or (freeze_updates_during_change_stage and LocationState.is_change_stage_or_env) then
+        last_stamina_value = current_stamina
+        return
+    end
+
+    -- =========================================================
+    -- In Water: force wetness instantly (handled also by on_frame)
+    -- =========================================================
+    if force_wet_in_water and LocationState.in_water then
+        post_water_drying = false
+
+        local cap = math_max(0.0, WATER_WETNESS_CAP)
+        local target = math_min(math_max(0.0, WATER_FORCE_WETNESS), cap)
+
+        face_sweating_value = target
+        body_sweating_value = target
+
+        last_stamina_value = current_stamina
+        return
+    end
+
+    -- =========================================================
+    -- After leaving water: ONLY dry until back to normal max
+    -- No increases at all during this period.
+    -- =========================================================
+    if post_water_drying then
+        -- 如果因为改设置等原因已经 <= 普通上限，就结束该模式（下一次tick再恢复正常计算）
+        if (face_sweating_value <= MAX_FACE_SWEATING) and (body_sweating_value <= MAX_BODY_SWEATING) then
+            post_water_drying = false
+            last_stamina_value = current_stamina
+            return
+        end
+
+        local final_dry_mult = EnvConfig.total_dry_mult
+        local dec_val = SWEATING_DECREASE_RATE * final_dry_mult * time_multiplier
+
+        local new_face = face_sweating_value - dec_val
+        local new_body = body_sweating_value - dec_val
+
+        -- Respect minimum limits
+        new_face = math_max(MIN_FACE_SWEATING, new_face)
+        new_body = math_max(MIN_BODY_SWEATING, new_body)
+
+        -- When crossing normal max, snap to normal max and end drying-only mode
+        local done_face = (face_sweating_value <= MAX_FACE_SWEATING)
+        local done_body = (body_sweating_value <= MAX_BODY_SWEATING)
+
+        if not done_face and new_face <= MAX_FACE_SWEATING then
+            new_face = MAX_FACE_SWEATING
+            done_face = true
+        end
+        if not done_body and new_body <= MAX_BODY_SWEATING then
+            new_body = MAX_BODY_SWEATING
+            done_body = true
+        end
+
+        face_sweating_value = new_face
+        body_sweating_value = new_body
+
+        if done_face and done_body then
+            post_water_drying = false
+        end
+
+        last_stamina_value = current_stamina
+        return
+    end
+
+    -- =========================================================
+    -- Normal sweating logic
+    -- =========================================================
     local final_wet_mult = EnvConfig.total_wet_mult
     local final_dry_mult = EnvConfig.total_dry_mult
 
@@ -938,6 +1332,90 @@ re.on_draw_ui(function()
             local cp, vp = imgui.slider_float("##EnvPassive", SWEATING_ENV_PASSIVE_RATE, 0.0, 0.1, "%.3f")
             if cp then SWEATING_ENV_PASSIVE_RATE = round3(vp) end
             imgui.text_colored(T("desc_env_passive"), 0xFFAAAAAA)
+-- ===========================
+-- LOCATION & TIME OVERRIDES
+-- ===========================
+if imgui.tree_node(T("loc_time")) then
+    _, pause_weather_in_safety_area = imgui.checkbox(T("opt_pause_weather_safe"), pause_weather_in_safety_area)
+    _, pause_weather_in_camp = imgui.checkbox(T("opt_pause_weather_camp"), pause_weather_in_camp)
+    _, force_wet_in_water = imgui.checkbox(T("opt_force_wet_in_water"), force_wet_in_water)
+    _, freeze_updates_during_blackout = imgui.checkbox(T("opt_freeze_blackout"), freeze_updates_during_blackout)
+    _, freeze_updates_during_change_stage = imgui.checkbox(T("opt_freeze_loading"), freeze_updates_during_change_stage)
+    
+    if force_wet_in_water then
+    -- 水下上限（可以超过普通 MAX_FACE/MAX_BODY）
+    local cc, vc = imgui.slider_float(T("opt_water_wet_cap"), WATER_WETNESS_CAP, 0.0, 5.0, "%.3f")
+    if cc then
+        WATER_WETNESS_CAP = round3(vc)
+        if WATER_WETNESS_CAP < 0.0 then WATER_WETNESS_CAP = 0.0 end
+        if WATER_FORCE_WETNESS > WATER_WETNESS_CAP then
+            WATER_FORCE_WETNESS = WATER_WETNESS_CAP
+        end
+    end
+
+    -- 水下拉满值（进入水下会立刻设成这个值）
+    local ct, vt = imgui.slider_float(T("opt_water_force_wetness"), WATER_FORCE_WETNESS, 0.0, WATER_WETNESS_CAP, "%.3f")
+    if ct then
+        WATER_FORCE_WETNESS = round3(vt)
+    end
+
+    if debug_enabled then
+        imgui.text(string_format("PostWaterDrying: %s", tostring(post_water_drying)))
+    end
+end
+
+    imgui.separator()
+    imgui.text(T("lbl_time_zone") .. EnvConfig.current_time_zone_name_display .. " (" .. tostring(EnvConfig.current_time_zone_index) .. ")")
+
+    if debug_enabled then
+        imgui.text(string_format("SafetyArea: %s | Camp: %s | Water: %s | Blackout: %s | Loading: %s",
+            tostring(LocationState.in_safety_area), tostring(LocationState.in_camp), tostring(LocationState.in_water),
+            tostring(LocationState.is_blackout), tostring(LocationState.is_change_stage_or_env)))
+        imgui.text(string_format("EnvMult: wet=%.2f dry=%.2f | WeatherMult: wet=%.2f dry=%.2f",
+            EnvConfig.env_wet_mult, EnvConfig.env_dry_mult, EnvConfig.weather_wet_mult, EnvConfig.weather_dry_mult))
+    end
+
+    -- Time-of-day tuning for current stage (optional)
+    local stage_tbl = EnvConfig.time_settings[EnvConfig.current_stage_id]
+    if not stage_tbl then
+        if imgui.button(T("btn_create_time_conf")) then
+            -- Create presets for the current stage (5 slots)
+            EnsureTimeSettingsForStage(EnvConfig.current_stage_id)
+        end
+        imgui.same_line()
+        if imgui.button(T("btn_create_all_time_conf")) then
+            -- Create presets for every stage we know
+            EnsureAllTimeSettings()
+        end
+    else
+        -- Quick actions
+        if imgui.button(T("btn_fill_missing_time_conf")) then
+            EnsureTimeSettingsForStage(EnvConfig.current_stage_id)
+        end
+        imgui.same_line()
+        if imgui.button(T("btn_create_all_time_conf")) then
+            EnsureAllTimeSettings()
+        end
+        imgui.text(T("time_conf_for_stage"))
+        for i = 0, 4 do
+            local t = stage_tbl[i]
+            if t then
+                imgui.text(t.name .. " (" .. tostring(i) .. ")")
+                imgui.text_colored(T("time_wet_mult_desc"), 0xFFAAAAAA)
+                local ctw, vtw = imgui.slider_float("##TimeWet"..tostring(i), t.wet, 0.1, 3.0, "%.2f")
+                if ctw then t.wet = round2(vtw) end
+                imgui.text_colored(T("time_dry_mult_desc"), 0xFFAAAAAA)
+                local ctd, vtd = imgui.slider_float("##TimeDry"..tostring(i), t.dry, 0.1, 3.0, "%.2f")
+                if ctd then t.dry = round2(vtd) end
+            end
+        end
+    end
+
+    imgui.tree_pop()
+end
+
+imgui.separator()
+
             imgui.separator()
 
             local display_name = EnvConfig.current_stage_name_display
@@ -960,7 +1438,9 @@ re.on_draw_ui(function()
                         local changed_n, new_name = imgui.input_text(T("env_rename"), s_conf.name)
                         if changed_n then s_conf.name = new_name end
                         _, s_conf.wet = imgui.slider_float(T("env_wet_mult"), s_conf.wet, 0.0, 5.0, "%.2f")
+                        imgui.text_colored(T("env_wet_mult_desc"), 0xFFAAAAAA)
                         _, s_conf.dry = imgui.slider_float(T("env_dry_mult"), s_conf.dry, 0.0, 5.0, "%.2f")
+                        imgui.text_colored(T("env_dry_mult_desc"), 0xFFAAAAAA)
                         if imgui.button(T("btn_delete")) then EnvConfig.stage_settings[EnvConfig.current_stage_id] = nil end
                     end
                 else
@@ -977,7 +1457,9 @@ re.on_draw_ui(function()
                         if w.is_active then imgui.pop_style_color() end
                         imgui.text(w.is_active and T("env_weather_active") or T("env_weather_inactive"))
                         _, w.wet = imgui.slider_float(T("env_wet_mult"), w.wet, 0.0, 10.0, "%.2f")
+                        imgui.text_colored(T("env_wet_mult_weather_desc"), 0xFFAAAAAA)
                         _, w.dry = imgui.slider_float(T("env_dry_mult"), w.dry, 0.0, 10.0, "%.2f")
+                        imgui.text_colored(T("env_dry_mult_weather_desc"), 0xFFAAAAAA)
                         imgui.tree_pop()
                     else
                         if w.is_active then imgui.pop_style_color() end
@@ -1046,6 +1528,46 @@ re.on_frame(function()
             end
 
             UpdateEnvironmentState()
+
+-- ==========================================
+-- Water enter/exit transition:
+-- Enter water -> instantly force wetness + apply once
+-- Exit water  -> start "dry only" mode if above normal max
+-- ==========================================
+if force_wet_in_water then
+    local now_in_water = LocationState.in_water
+
+    -- Enter water
+    if now_in_water and not was_in_water then
+        local cap = math_max(0.0, WATER_WETNESS_CAP)
+        local target = math_min(math_max(0.0, WATER_FORCE_WETNESS), cap)
+
+        face_sweating_value = target
+        body_sweating_value = target
+        post_water_drying = false
+
+        last_stamina_value = _M.HunterData.StaminaData or last_stamina_value
+
+        -- Instant visual update (do it once on enter)
+        ApplyWetnessToPlayerCached()
+    end
+
+    -- Exit water
+    if (not now_in_water) and was_in_water then
+        if (face_sweating_value > MAX_FACE_SWEATING) or (body_sweating_value > MAX_BODY_SWEATING) then
+            post_water_drying = true
+        else
+            post_water_drying = false
+        end
+        last_stamina_value = _M.HunterData.StaminaData or last_stamina_value
+    end
+
+    was_in_water = now_in_water
+else
+    post_water_drying = false
+    was_in_water = LocationState.in_water
+end
+
 
             if enable_motiondata_sweating or enable_actionguide_sweating or (debug_enabled and is_history_expanded) then
                 GetPlayerMotionAndActionData()
